@@ -1,5 +1,9 @@
 import type { Address, Hash } from 'viem'
 
+export const FIAT_CURRENCIES = ['USD', 'EUR', 'AUD', 'CAD', 'CNY', 'GBP', 'JPY', 'KRW'] as const
+
+export type FiatCurrency = (typeof FIAT_CURRENCIES)[number]
+
 export type LoadPhase =
   | 'idle'
   | 'resolving'
@@ -83,7 +87,7 @@ export interface Analytics {
 }
 
 export interface MarketData {
-  ethUsd: number | null
+  ethFiat: Record<FiatCurrency, number | null>
   marketRate: number | null
   premiumPercent: number | null
   fetchedAt: number | null

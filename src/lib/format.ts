@@ -1,4 +1,5 @@
 import { formatUnits } from 'viem'
+import type { FiatCurrency } from './types'
 
 export function formatEth(value: bigint, maximumFractionDigits = 5) {
   const number = Number(formatUnits(value, 18))
@@ -9,13 +10,18 @@ export function formatEth(value: bigint, maximumFractionDigits = 5) {
   }).format(number)
 }
 
-export function formatFiat(eth: bigint, usd: number | null) {
-  if (usd === null) return 'USD unavailable'
-  const value = Number(formatUnits(eth, 18)) * usd
+export function formatFiat(eth: bigint, rate: number | null, currency: FiatCurrency) {
+  if (rate === null) return `${currency} unavailable`
+  const value = Number(formatUnits(eth, 18)) * rate
+  const currencyDigits = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+  }).resolvedOptions().maximumFractionDigits
+
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: value >= 1_000 ? 0 : 2,
+    currency,
+    maximumFractionDigits: value >= 1_000 ? 0 : currencyDigits,
   }).format(value)
 }
 

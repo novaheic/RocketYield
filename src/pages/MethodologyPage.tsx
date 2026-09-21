@@ -56,7 +56,7 @@ export function MethodologyPage() {
         <ul>
           <li>Ethereum mainnet rETH contract for current balance and exchange rate.</li>
           <li>Alchemy RPC and transfer-history API for live and historical Ethereum reads.</li>
-          <li>CoinGecko for the optional ETH/USD display.</li>
+          <li>CoinGecko for ETH prices in the dashboard’s supported fiat currencies.</li>
           <li>GeckoTerminal for the Curve rETH/WETH spot-market comparison.</li>
           <li>Cloudflare Pages, Functions, and cookieless Web Analytics for hosting and aggregate statistics.</li>
         </ul>

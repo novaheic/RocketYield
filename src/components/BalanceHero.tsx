@@ -1,12 +1,12 @@
 import { Info } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { formatCountdown, formatDate, formatFiat } from '../lib/format'
-import type { DashboardData } from '../lib/types'
+import { FIAT_CURRENCIES, type DashboardData, type FiatCurrency } from '../lib/types'
 
 interface BalanceHeroProps {
   data: DashboardData
-  showFiat: boolean
-  onToggleFiat: () => void
+  fiatCurrency: FiatCurrency
+  onFiatCurrencyChange: (currency: FiatCurrency) => void
 }
 
 function displayNumber(value: number) {
@@ -16,7 +16,11 @@ function displayNumber(value: number) {
   }).format(value)
 }
 
-export function BalanceHero({ data, showFiat, onToggleFiat }: BalanceHeroProps) {
+export function BalanceHero({
+  data,
+  fiatCurrency,
+  onFiatCurrencyChange,
+}: BalanceHeroProps) {
   const openedAt = useRef(Date.now())
   const baseEth = Number(data.currentEth) / 1e18
   const [now, setNow] = useState(Date.now())
@@ -37,9 +41,18 @@ export function BalanceHero({ data, showFiat, onToggleFiat }: BalanceHeroProps) 
       <div className="hero-kicker">
         <span className="live-rule" />
         <span id="position-heading">Current position</span>
-        <button className="fiat-toggle" type="button" onClick={onToggleFiat}>
-          {showFiat ? 'Show ETH only' : 'Show USD'}
-        </button>
+        <label className="fiat-selector">
+          <span>Display in</span>
+          <select
+            aria-label="Fiat currency"
+            value={fiatCurrency}
+            onChange={(event) => onFiatCurrencyChange(event.target.value as FiatCurrency)}
+          >
+            {FIAT_CURRENCIES.map((currency) => (
+              <option key={currency} value={currency}>{currency}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="balance-line">
@@ -52,7 +65,7 @@ export function BalanceHero({ data, showFiat, onToggleFiat }: BalanceHeroProps) 
           +{displayNumber(accrued)} since opening
           <span className="estimate-tag">estimate</span>
         </span>
-        {showFiat && <span>{formatFiat(data.currentEth, data.market.ethUsd)}</span>}
+        <span>{formatFiat(data.currentEth, data.market.ethFiat[fiatCurrency], fiatCurrency)}</span>
       </div>
 
       <div className="hero-facts">

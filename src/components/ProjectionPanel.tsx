@@ -1,12 +1,12 @@
 import { formatEth, formatFiat } from '../lib/format'
-import type { DashboardData } from '../lib/types'
+import type { DashboardData, FiatCurrency } from '../lib/types'
 
 interface ProjectionPanelProps {
   data: DashboardData
-  showFiat: boolean
+  fiatCurrency: FiatCurrency
 }
 
-export function ProjectionPanel({ data, showFiat }: ProjectionPanelProps) {
+export function ProjectionPanel({ data, fiatCurrency }: ProjectionPanelProps) {
   const { current, thirtyDayAverage } = data.analytics.projections
   const rows = [
     ['Per day', current.day, thirtyDayAverage.day],
@@ -33,11 +33,11 @@ export function ProjectionPanel({ data, showFiat }: ProjectionPanelProps) {
           <span>{label}</span>
           <strong>
             +{formatEth(atCurrent)} ETH
-            {showFiat && <small>{formatFiat(atCurrent, data.market.ethUsd)}</small>}
+            <small>{formatFiat(atCurrent, data.market.ethFiat[fiatCurrency], fiatCurrency)}</small>
           </strong>
           <strong className="secondary-value">
             +{formatEth(atAverage)} ETH
-            {showFiat && <small>{formatFiat(atAverage, data.market.ethUsd)}</small>}
+            <small>{formatFiat(atAverage, data.market.ethFiat[fiatCurrency], fiatCurrency)}</small>
           </strong>
         </div>
       ))}

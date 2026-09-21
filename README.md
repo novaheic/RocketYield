@@ -22,7 +22,7 @@ Set `VITE_ETHEREUM_RPC_URL` in `.env.local`. The example uses an Alchemy URL pla
 - On Alchemy, the app pages through `alchemy_getAssetTransfers`; other providers use filtered rETH `Transfer` logs. Both paths reconstruct the balance held at each point in time without Alchemy Free Tier’s 10-block log-range limit.
 - Historical archive calls sample `getExchangeRate()` at every transfer block, daily for the recent chart, and monthly for older chart history. Requests are throttled for free-tier limits. The current balances contract is resolved through RocketStorage for the exact latest protocol-update time.
 - Earnings are calculated as the sum of each held balance multiplied by the next realized rate change. Buying more rETH does not inflate earlier earnings, and selling does not remove earnings already realized.
-- CoinGecko supplies the optional ETH/USD display. GeckoTerminal supplies the optional Curve rETH/WETH spot quote. Either may fail without blocking on-chain ETH figures.
+- CoinGecko supplies ETH prices in USD, EUR, AUD, CAD, CNY, GBP, JPY, and KRW. The selected fiat currency is remembered in localStorage. GeckoTerminal supplies the optional Curve rETH/WETH spot quote. Either provider may fail without blocking on-chain ETH figures.
 - IndexedDB caches completed block ranges locally. Refreshes request only newer blocks.
 
 The ticking balance is explicitly an estimate. Rocket Pool’s rate changes in discrete oracle updates, usually around every 24 hours. RocketYield smooths the recent realized rate between updates and snaps back to the next on-chain value.

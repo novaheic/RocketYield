@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Address } from 'viem'
 import { DashboardError, type DashboardData } from './lib/types'
@@ -42,11 +42,20 @@ const dashboard: DashboardData = {
     smoothedEthPerSecond: 0,
   },
   market: {
-    ethUsd: null,
+    ethFiat: {
+      USD: null,
+      EUR: null,
+      AUD: null,
+      CAD: null,
+      CNY: null,
+      GBP: null,
+      JPY: null,
+      KRW: null,
+    },
     marketRate: null,
     premiumPercent: null,
     fetchedAt: null,
-    fiatError: 'USD price unavailable',
+    fiatError: 'Fiat prices unavailable',
   },
   chainBlock: 24_000_000n,
   rateUpdatedAt: now,
@@ -56,6 +65,7 @@ const dashboard: DashboardData = {
 describe('App live-data states', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/')
+    window.localStorage.clear()
     mockedHook.mockReturnValue({
       data: null,
       error: null,
@@ -125,5 +135,25 @@ describe('App live-data states', () => {
     expect(screen.getByText(/currently holds no reth/i)).toBeInTheDocument()
     expect(screen.getByText(/on-chain figures are complete/i)).toBeInTheDocument()
     expect(screen.getByText('Current position')).toBeInTheDocument()
+  })
+
+  it('restores and remembers the selected fiat currency', () => {
+    window.history.replaceState({}, '', '/?address=rocketpool.eth')
+    window.localStorage.setItem('rocketyield-fiat-currency', 'JPY')
+    mockedHook.mockReturnValue({
+      data: dashboard,
+      error: null,
+      progress: { phase: 'ready', label: 'Live data ready' },
+      refresh,
+    })
+
+    render(<App />)
+
+    const selector = screen.getByRole('combobox', { name: 'Fiat currency' })
+    expect(selector).toHaveValue('JPY')
+
+    fireEvent.change(selector, { target: { value: 'EUR' } })
+    expect(selector).toHaveValue('EUR')
+    expect(window.localStorage.getItem('rocketyield-fiat-currency')).toBe('EUR')
   })
 })

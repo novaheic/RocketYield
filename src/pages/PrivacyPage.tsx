@@ -52,7 +52,9 @@ export function PrivacyPage() {
           RocketYield speichert Wallet-Adressen nicht in der eigenen Analytics-Datenbank. Die
           aufgerufene Adresse verbleibt jedoch in der URL und kann dadurch in Ihrem Browserverlauf,
           in Lesezeichen oder beim Teilen der URL sichtbar sein. Blockchain- und Kursdaten werden
-          zur Beschleunigung lokal im IndexedDB-Speicher Ihres Browsers zwischengespeichert.
+          zur Beschleunigung lokal im IndexedDB-Speicher Ihres Browsers zwischengespeichert. Die
+          ausgewählte Fiatwährung wird im Local Storage gespeichert, damit sie bei späteren
+          Besuchen wiederhergestellt werden kann.
           Informationen zu Alchemy finden Sie in der{' '}
           <a href="https://www.alchemy.com/policies/privacy-policy" target="_blank" rel="noreferrer">
             Alchemy Privacy Policy
@@ -64,9 +66,10 @@ export function PrivacyPage() {
         <span className="static-index">DE / 04</span>
         <h2>Fiat- und Marktdaten</h2>
         <p>
-          Für die optionale ETH/USD-Anzeige und den rETH/WETH-Marktvergleich stellt der Browser
-          Anfragen an CoinGecko und GeckoTerminal. Dabei werden keine Wallet-Adresse und keine
-          Portfoliodaten übermittelt; die Anbieter erhalten jedoch die technisch erforderliche
+          Für die Anzeige in USD, EUR, AUD, CAD, CNY, GBP, JPY oder KRW und den
+          rETH/WETH-Marktvergleich stellt der Browser Anfragen an CoinGecko und GeckoTerminal.
+          Dabei werden keine Wallet-Adresse und keine Portfoliodaten übermittelt; die Anbieter
+          erhalten jedoch die technisch erforderliche
           IP-Adresse und Browserinformationen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Das
           berechtigte Interesse liegt in der Darstellung aktueller Preis- und Marktdaten.
         </p>
@@ -125,8 +128,9 @@ export function PrivacyPage() {
           The controller is Nova Heidt at the address above. Cloudflare processes technical request
           data to host and protect the site. When you ask RocketYield to read a wallet or ENS name,
           your browser sends that query to Alchemy; the address also remains in your URL and may be
-          stored in your own browser history. CoinGecko and GeckoTerminal receive ordinary browser
-          request metadata when optional fiat and market prices are loaded.
+          stored in your own browser history. Your selected fiat currency is saved in localStorage
+          so it can be restored on later visits. CoinGecko and GeckoTerminal receive ordinary
+          browser request metadata when fiat and market prices are loaded.
         </p>
         <p>
           Cloudflare Web Analytics measures aggregate page views, visits, referral information,

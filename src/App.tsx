@@ -12,10 +12,23 @@ import { ImpressumPage } from './pages/ImpressumPage'
 import { MethodologyPage } from './pages/MethodologyPage'
 import { PrivacyPage } from './pages/PrivacyPage'
 import { StatsPage } from './pages/StatsPage'
+import { FIAT_CURRENCIES, type FiatCurrency } from './lib/types'
 import './styles/app.css'
+
+const FIAT_STORAGE_KEY = 'rocketyield-fiat-currency'
 
 function currentQuery() {
   return new URLSearchParams(window.location.search).get('address') ?? ''
+}
+
+function initialFiatCurrency(): FiatCurrency {
+  try {
+    const stored = window.localStorage.getItem(FIAT_STORAGE_KEY)
+    const currency = FIAT_CURRENCIES.find((candidate) => candidate === stored)
+    return currency ?? 'USD'
+  } catch {
+    return 'USD'
+  }
 }
 
 function Welcome({ onSubmit }: { onSubmit: (value: string) => void }) {
@@ -132,7 +145,7 @@ export default function App() {
   const isPrivacyPage = pathname === '/privacy' || pathname === '/datenschutz'
   const isDashboardPage = !isStatsPage && !isMethodologyPage && !isImpressumPage && !isPrivacyPage
   const [query, setQuery] = useState(currentQuery)
-  const [showFiat, setShowFiat] = useState(true)
+  const [fiatCurrency, setFiatCurrency] = useState<FiatCurrency>(initialFiatCurrency)
   const { data, error, progress, refresh } = useRocketYield(isDashboardPage ? query : '')
 
   useEffect(() => {
@@ -140,6 +153,14 @@ export default function App() {
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(FIAT_STORAGE_KEY, fiatCurrency)
+    } catch {
+      // The selection still works for this page when browser storage is unavailable.
+    }
+  }, [fiatCurrency])
 
   function navigate(value: string) {
     const url = new URL(window.location.href)
@@ -186,12 +207,12 @@ export default function App() {
               )}
               <BalanceHero
                 data={data}
-                showFiat={showFiat}
-                onToggleFiat={() => setShowFiat((value) => !value)}
+                fiatCurrency={fiatCurrency}
+                onFiatCurrencyChange={setFiatCurrency}
               />
-              <MetricBand data={data} showFiat={showFiat} />
+              <MetricBand data={data} fiatCurrency={fiatCurrency} />
               <div className="analysis-grid">
-                <ProjectionPanel data={data} showFiat={showFiat} />
+                <ProjectionPanel data={data} fiatCurrency={fiatCurrency} />
                 <MarketMilestone data={data} />
               </div>
               <AnalyticsCharts data={data} />
