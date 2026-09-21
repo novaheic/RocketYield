@@ -12,9 +12,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "preview": "vite preview",
-    "cf:dev": "npm run build && wrangler pages dev dist",
-    "db:migrate:local": "wrangler d1 migrations apply rocketyield-analytics --local",
-    "db:migrate:remote": "wrangler d1 migrations apply rocketyield-analytics --remote"
+    "cf:dev": "npm run build && wrangler pages dev dist"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.2.6",

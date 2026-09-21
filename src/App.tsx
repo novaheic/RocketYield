@@ -6,8 +6,11 @@ import { BalanceHero } from './components/BalanceHero'
 import { MarketMilestone } from './components/MarketMilestone'
 import { MetricBand } from './components/MetricBand'
 import { ProjectionPanel } from './components/ProjectionPanel'
+import { LegalLinks } from './components/StaticPageLayout'
 import { useRocketYield } from './hooks/useRocketYield'
-import { trackPageView } from './lib/telemetry'
+import { ImpressumPage } from './pages/ImpressumPage'
+import { MethodologyPage } from './pages/MethodologyPage'
+import { PrivacyPage } from './pages/PrivacyPage'
 import { StatsPage } from './pages/StatsPage'
 import './styles/app.css'
 
@@ -108,15 +111,29 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
   )
 }
 
+function ToolFooter({ blockNumber }: { blockNumber?: bigint }) {
+  return (
+    <footer className="tool-footer">
+      <span>
+        {blockNumber
+          ? `RocketYield · on-chain data as of block ${blockNumber.toLocaleString()}`
+          : 'RocketYield · unofficial community tool'}
+      </span>
+      <LegalLinks />
+    </footer>
+  )
+}
+
 export default function App() {
-  const isStatsPage = window.location.pathname === '/stats'
+  const pathname = window.location.pathname
+  const isStatsPage = pathname === '/stats'
+  const isMethodologyPage = pathname === '/methodology'
+  const isImpressumPage = pathname === '/impressum'
+  const isPrivacyPage = pathname === '/privacy' || pathname === '/datenschutz'
+  const isDashboardPage = !isStatsPage && !isMethodologyPage && !isImpressumPage && !isPrivacyPage
   const [query, setQuery] = useState(currentQuery)
   const [showFiat, setShowFiat] = useState(true)
-  const { data, error, progress, refresh } = useRocketYield(isStatsPage ? '' : query)
-
-  useEffect(() => {
-    if (!isStatsPage) trackPageView()
-  }, [isStatsPage])
+  const { data, error, progress, refresh } = useRocketYield(isDashboardPage ? query : '')
 
   useEffect(() => {
     const onPopState = () => setQuery(currentQuery())
@@ -132,6 +149,9 @@ export default function App() {
   }
 
   if (isStatsPage) return <StatsPage />
+  if (isMethodologyPage) return <MethodologyPage />
+  if (isImpressumPage) return <ImpressumPage />
+  if (isPrivacyPage) return <PrivacyPage />
 
   return (
     <div className="app-shell">
@@ -143,46 +163,42 @@ export default function App() {
         onRefresh={refresh}
       />
       <main className="main-stage">
-        {!query && <Welcome onSubmit={navigate} />}
-        {query && !data && !error && (
-          <Loading
-            label={progress.label}
-            completed={progress.completed}
-            total={progress.total}
-          />
-        )}
-        {error && <ErrorState message={error.message} onRetry={refresh} />}
-        {data && (
-          <div className="dashboard">
-            {data.currentReth === 0n && (
-              <div className="holding-notice">
-                This address currently holds no rETH. Historical earnings remain visible below.
-              </div>
-            )}
-            {(data.market.fiatError || data.market.marketError) && (
-              <div className="partial-notice">
-                On-chain figures are complete. {data.market.fiatError ?? data.market.marketError}.
-              </div>
-            )}
-            <BalanceHero
-              data={data}
-              showFiat={showFiat}
-              onToggleFiat={() => setShowFiat((value) => !value)}
+          {!query && <Welcome onSubmit={navigate} />}
+          {query && !data && !error && (
+            <Loading
+              label={progress.label}
+              completed={progress.completed}
+              total={progress.total}
             />
-            <MetricBand data={data} showFiat={showFiat} />
-            <div className="analysis-grid">
-              <ProjectionPanel data={data} showFiat={showFiat} />
-              <MarketMilestone data={data} />
+          )}
+          {error && <ErrorState message={error.message} onRetry={refresh} />}
+          {data && (
+            <div className="dashboard">
+              {data.currentReth === 0n && (
+                <div className="holding-notice">
+                  This address currently holds no rETH. Historical earnings remain visible below.
+                </div>
+              )}
+              {(data.market.fiatError || data.market.marketError) && (
+                <div className="partial-notice">
+                  On-chain figures are complete. {data.market.fiatError ?? data.market.marketError}.
+                </div>
+              )}
+              <BalanceHero
+                data={data}
+                showFiat={showFiat}
+                onToggleFiat={() => setShowFiat((value) => !value)}
+              />
+              <MetricBand data={data} showFiat={showFiat} />
+              <div className="analysis-grid">
+                <ProjectionPanel data={data} showFiat={showFiat} />
+                <MarketMilestone data={data} />
+              </div>
+              <AnalyticsCharts data={data} />
+              <ToolFooter blockNumber={data.chainBlock} />
             </div>
-            <AnalyticsCharts data={data} />
-            <footer>
-              <span>RocketYield · on-chain data as of block {data.chainBlock.toLocaleString()}</span>
-              <span>
-                <a href="/stats">Public stats</a> · Unofficial community tool. Not affiliated with Rocket Pool.
-              </span>
-            </footer>
-          </div>
-        )}
+          )}
+          {!data && <ToolFooter />}
       </main>
     </div>
   )

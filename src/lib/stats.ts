@@ -1,21 +1,21 @@
 export interface DailyStat {
   day: string
   pageViews: number
-  dashboardLoads: number
-  uniqueVisitors: number
-  successfulVisitors: number
+  visits: number
 }
 
 export interface PublicStats {
   totals: {
-    uniqueVisitors: number
+    visits: number
     pageViews: number
-    dashboardLoads: number
-    successfulVisitors: number
-    successRate: number
+    viewsPerVisit: number
+    visitsThirtyDays: number
+    pageViewsThirtyDays: number
+    periodDays: number
   }
   daily: DailyStat[]
   updatedAt: string
+  estimated: boolean
 }
 
 export async function fetchPublicStats(signal?: AbortSignal): Promise<PublicStats> {
@@ -25,7 +25,7 @@ export async function fetchPublicStats(signal?: AbortSignal): Promise<PublicStat
   })
   if (!response.ok) {
     if (response.status === 404) {
-      throw new Error('The local analytics backend is not running. Use npm run cf:dev.')
+      throw new Error('The analytics backend is not running. Use npm run cf:dev.')
     }
     throw new Error('Public statistics are temporarily unavailable.')
   }

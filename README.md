@@ -27,6 +27,15 @@ Set `VITE_ETHEREUM_RPC_URL` in `.env.local`. The example uses an Alchemy URL pla
 
 The ticking balance is explicitly an estimate. Rocket Pool’s rate changes in discrete oracle updates, usually around every 24 hours. RocketYield smooths the recent realized rate between updates and snaps back to the next on-chain value.
 
+## Methodology, privacy, and legal pages
+
+- `/methodology` documents contracts, formulas, sampling, estimates, sources, and limitations in English and German.
+- `/impressum` contains the German provider information and an English legal-notice translation.
+- `/privacy` and `/datenschutz` explain hosting, RPC, price providers, local storage, cookieless analytics, and data-subject rights in German and English.
+- Every main surface links to these pages through the footer.
+
+Cloudflare Web Analytics provides aggregate visits and page views without cookies, localStorage, browser IDs, individual profiles, or fingerprinting. Successful dashboard loads are not tracked.
+
 ## Commands
 
 ```bash
@@ -40,23 +49,24 @@ npm run preview
 
 ## Static deployment
 
-Build with `npm run build` and publish `dist/` to any static host. Configure `VITE_ETHEREUM_RPC_URL` at build time. The core rETH dashboard remains static; the optional public statistics described below require Cloudflare Pages Functions and D1.
+Build with `npm run build` and publish `dist/` to any static host. Configure `VITE_ETHEREUM_RPC_URL` at build time. The core rETH dashboard remains static; the optional public statistics described below require Cloudflare Pages Functions and Web Analytics.
 
 ## Free public statistics on Cloudflare
 
-The `/stats` page uses Cloudflare Pages Functions and a free D1 database. It displays aggregate counts only. Wallet addresses, ENS names, balances, earnings, RPC details, and error contents are never sent to analytics.
+The `/stats` page uses a Cloudflare Pages Function to read aggregate Web Analytics data with a server-only token. It displays visits and page views, not successful reads or identifiable users. Wallet addresses, ENS names, balances, earnings, RPC details, and error contents are never sent to analytics.
 
 ### Test locally
 
-1. Copy `.dev.vars.example` to `.dev.vars` and replace the example value with a long random string.
-2. Create the local database and start Pages:
+1. Complete the Cloudflare setup below.
+2. Copy `.dev.vars.example` to `.dev.vars` and add the read-only API token.
+3. Put the Cloudflare account ID and Web Analytics site tag in `wrangler.jsonc`.
+4. Start Pages:
 
 ```bash
-npm run db:migrate:local
 npm run cf:dev
 ```
 
-Open `http://localhost:8788/stats`. Regular `npm run dev` still runs the frontend, but its analytics endpoints are intentionally absent.
+Open `http://localhost:8788/stats`. Regular `npm run dev` still runs the frontend, but its server-side stats endpoint is absent.
 
 ### Deploy on the free tier
 
@@ -66,31 +76,25 @@ Open `http://localhost:8788/stats`. Regular `npm run dev` still runs the fronten
 npx wrangler login
 ```
 
-2. Create the D1 database:
-
-```bash
-npx wrangler d1 create rocketyield-analytics
-```
-
-3. Copy the returned `database_id` into `wrangler.jsonc`, replacing `REPLACE_WITH_YOUR_D1_DATABASE_ID`.
-4. Apply the production migration:
-
-```bash
-npm run db:migrate:remote
-```
-
-5. Create the Pages project, add the server-only analytics salt, then deploy:
+2. Create the Pages project and deploy once:
 
 ```bash
 npx wrangler pages project create rocketyield
-npx wrangler pages secret put ANALYTICS_SALT --project-name rocketyield
 npm run build
 npx wrangler pages deploy dist --project-name rocketyield
 ```
 
-6. Replace `APP_ORIGIN` in `wrangler.jsonc` with the exact Pages URL Cloudflare returns, then build and deploy once more.
+3. In Cloudflare, open the Pages project and enable Web Analytics. Copy its site tag.
+4. Create a dedicated API token with only `Account Analytics: Read`.
+5. Copy the account ID and site tag into `wrangler.jsonc`, then add the token as a secret:
 
-The anonymous browser ID is salted and hashed inside the Function before D1 storage. The public API returns only totals and daily aggregates. These numbers are intentionally approximate: bots, cleared browser storage, and determined request spam can affect public counters.
+```bash
+npx wrangler pages secret put CLOUDFLARE_ANALYTICS_TOKEN --project-name rocketyield
+npm run build
+npx wrangler pages deploy dist --project-name rocketyield
+```
+
+The token never reaches the browser. The public API returns only totals and daily aggregates. Web Analytics does not use cookies, localStorage, browser IDs, or fingerprinting. Visits are still approximate and can include bots; Cloudflare may sample higher-volume data.
 
 ## Limits
 

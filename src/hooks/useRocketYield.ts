@@ -3,7 +3,6 @@ import { buildAnalytics } from '../lib/analytics/timeline'
 import { loadRateHistory, loadTransferHistory } from '../lib/chain/history'
 import { readCurrentPosition, resolveWallet } from '../lib/chain/client'
 import { loadMarketData } from '../lib/market'
-import { trackEvent } from '../lib/telemetry'
 import {
   DashboardError,
   type DashboardData,
@@ -108,7 +107,6 @@ export function useRocketYield(input: string) {
           expectedNextUpdateAt: update.next,
         })
         setProgress({ phase: 'ready', label: 'Live data ready' })
-        void trackEvent('dashboard_loaded')
       } catch (caught) {
         if (caught instanceof DOMException && caught.name === 'AbortError') return
         setError(normalizeError(caught))

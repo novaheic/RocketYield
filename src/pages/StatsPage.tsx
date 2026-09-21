@@ -1,17 +1,11 @@
 import { ArrowLeft, BarChart3, ShieldCheck } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { LegalLinks } from '../components/StaticPageLayout'
 import { fetchPublicStats, type PublicStats } from '../lib/stats'
 import '../styles/stats.css'
 
 function integer(value: number) {
   return new Intl.NumberFormat('en-US').format(value)
-}
-
-function percent(value: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'percent',
-    maximumFractionDigits: 1,
-  }).format(value)
 }
 
 function updatedAt(value: string) {
@@ -28,21 +22,28 @@ export function StatsPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const controller = new AbortController()
-    fetchPublicStats(controller.signal)
-      .then(setStats)
-      .catch((caught: unknown) => {
+    let active = true
+    async function load() {
+      try {
+        const result = await fetchPublicStats()
+        if (active) setStats(result)
+      } catch (caught: unknown) {
+        if (!active) return
         if (caught instanceof DOMException && caught.name === 'AbortError') return
         setError(caught instanceof Error ? caught.message : 'Public statistics are unavailable.')
-      })
-    return () => controller.abort()
+      }
+    }
+    void load()
+    return () => {
+      active = false
+    }
   }, [])
 
   const chartMax = useMemo(() => {
     if (!stats) return 1
     return Math.max(
       1,
-      ...stats.daily.flatMap((day) => [day.uniqueVisitors, day.dashboardLoads]),
+      ...stats.daily.flatMap((day) => [day.visits, day.pageViews]),
     )
   }, [stats])
 
@@ -65,8 +66,8 @@ export function StatsPage() {
           <h1>How RocketYield is being used.</h1>
         </div>
         <p>
-          A small, transparent view of reach and successful portfolio reads. These counters are
-          approximate and can include bots.
+          A small, transparent view of reach from privacy-preserving Cloudflare Web Analytics.
+          Visits are a popularity estimate, not a count of identifiable people.
         </p>
       </header>
 
@@ -87,31 +88,31 @@ export function StatsPage() {
 
       {stats && (
         <>
-          <section className="stats-metrics" aria-label="All-time totals">
+          <section className="stats-metrics" aria-label="Tracked totals">
             <div>
-              <span>Unique visitors</span>
-              <strong>{integer(stats.totals.uniqueVisitors)}</strong>
-              <small>anonymous browsers</small>
+              <span>Visits</span>
+              <strong>{integer(stats.totals.visits)}</strong>
+              <small>last {stats.totals.periodDays} days</small>
             </div>
             <div>
               <span>Page views</span>
               <strong>{integer(stats.totals.pageViews)}</strong>
-              <small>dashboard visits</small>
+              <small>last {stats.totals.periodDays} days</small>
             </div>
             <div>
-              <span>Successful reads</span>
-              <strong>{integer(stats.totals.dashboardLoads)}</strong>
-              <small>completed live loads</small>
+              <span>Views per visit</span>
+              <strong>{stats.totals.viewsPerVisit.toFixed(2)}</strong>
+              <small>aggregate ratio</small>
             </div>
             <div>
-              <span>Successful visitors</span>
-              <strong>{integer(stats.totals.successfulVisitors)}</strong>
-              <small>at least one completed read</small>
+              <span>30-day visits</span>
+              <strong>{integer(stats.totals.visitsThirtyDays)}</strong>
+              <small>rolling window</small>
             </div>
             <div className="stats-rate">
-              <span>Visitor success rate</span>
-              <strong>{percent(stats.totals.successRate)}</strong>
-              <small>visitors with a completed read</small>
+              <span>30-day page views</span>
+              <strong>{integer(stats.totals.pageViewsThirtyDays)}</strong>
+              <small>{stats.estimated ? 'sampled estimate' : 'unsampled count'}</small>
             </div>
           </section>
 
@@ -122,8 +123,8 @@ export function StatsPage() {
                 <h2 id="trend-heading">Daily activity</h2>
               </div>
               <div className="stats-legend">
-                <span><i className="visitors-key" /> Visitors</span>
-                <span><i className="loads-key" /> Successful reads</span>
+                <span><i className="visitors-key" /> Visits</span>
+                <span><i className="loads-key" /> Page views</span>
               </div>
             </header>
             <div className="stats-chart">
@@ -131,16 +132,16 @@ export function StatsPage() {
                 <div
                   className="stats-day"
                   key={day.day}
-                  title={`${day.day}: ${day.uniqueVisitors} visitors, ${day.dashboardLoads} successful reads`}
-                  aria-label={`${day.day}: ${day.uniqueVisitors} unique visitors and ${day.dashboardLoads} successful reads`}
+                  title={`${day.day}: ${day.visits} visits, ${day.pageViews} page views`}
+                  aria-label={`${day.day}: ${day.visits} visits and ${day.pageViews} page views`}
                 >
                   <span
                     className="visitor-bar"
-                    style={{ height: `${Math.max(day.uniqueVisitors ? 3 : 0, (day.uniqueVisitors / chartMax) * 100)}%` }}
+                    style={{ height: `${Math.max(day.visits ? 3 : 0, (day.visits / chartMax) * 100)}%` }}
                   />
                   <span
                     className="load-bar"
-                    style={{ height: `${Math.max(day.dashboardLoads ? 3 : 0, (day.dashboardLoads / chartMax) * 100)}%` }}
+                    style={{ height: `${Math.max(day.pageViews ? 3 : 0, (day.pageViews / chartMax) * 100)}%` }}
                   />
                 </div>
               ))}
@@ -160,14 +161,14 @@ export function StatsPage() {
           <h2>Counts, not portfolios.</h2>
           <p>
             RocketYield does not send wallet addresses, ENS names, balances, earnings, RPC details,
-            or error contents to analytics. Anonymous browser IDs are salted and hashed before
-            storage.
+            or error contents to analytics. Cloudflare Web Analytics uses no cookies, localStorage,
+            individual profiles, or fingerprinting.
           </p>
         </div>
       </section>
 
       <footer className="stats-footer">
-        <span>Public aggregate statistics</span>
+        <LegalLinks />
         <span>No cookies · no wallet data · no account profiles</span>
       </footer>
     </main>
