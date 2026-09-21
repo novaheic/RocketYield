@@ -18,7 +18,7 @@ describe('informational and legal pages', () => {
   it('documents the balance-weighted earnings method and estimate', () => {
     render(<MethodologyPage />)
     expect(screen.getByText(/Earnings = Σ/)).toBeInTheDocument()
-    expect(screen.getByText(/Ertrag = Σ/)).toBeInTheDocument()
+    expect(document.body).not.toHaveTextContent('Ertrag = Σ')
     expect(screen.getByText(/per-second display estimate/i)).toBeInTheDocument()
   })
 

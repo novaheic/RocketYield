@@ -3,7 +3,7 @@ import { StaticPageLayout } from '../components/StaticPageLayout'
 export function MethodologyPage() {
   return (
     <StaticPageLayout
-      eyebrow="METHODOLOGY · METHODIK"
+      eyebrow="METHODOLOGY"
       title="How RocketYield calculates your numbers."
       intro="A transparent description of the contracts, sampling, formulas, estimates, and limitations behind the dashboard."
     >
@@ -63,39 +63,6 @@ export function MethodologyPage() {
         <p>
           Market quotes exclude gas and user-specific slippage. Fiat and market APIs can be stale,
           unavailable, or rate-limited without affecting the core ETH calculation.
-        </p>
-      </section>
-
-      <section className="static-section" lang="de">
-        <span className="static-index">DE / 01</span>
-        <h2>Berechnung der Position und Erträge</h2>
-        <p>
-          rETH ist kein Rebasing-Token. RocketYield liest den aktuellen rETH-Saldo und den
-          ETH/rETH-Wechselkurs direkt aus Ethereum Mainnet und rekonstruiert frühere Salden anhand
-          der ERC-20-Transfers. Jeder Transfer beendet ein Halteintervall zum historischen Kurs
-          dieses Blocks.
-        </p>
-        <div className="formula">Ertrag = Σ(Saldo im Halteintervall × Kursänderung)</div>
-        <p>
-          Dadurch erhöhen spätere Käufe nicht rückwirkend den Ertrag, und Verkäufe löschen bereits
-          entstandene Erträge nicht. Für die letzten 90 Tage werden tägliche Kurspunkte verwendet,
-          für ältere Diagrammdaten monatliche Punkte sowie immer die jeweiligen Transferblöcke.
-        </p>
-      </section>
-
-      <section className="static-section" lang="de">
-        <span className="static-index">DE / 02</span>
-        <h2>Schätzungen und Grenzen</h2>
-        <p>
-          APR und APY beruhen auf vergangenen Kursänderungen. Hochrechnungen setzen einen
-          unveränderten rETH-Saldo voraus und sind keine Prognose. Der laufende Zähler glättet den
-          zuletzt realisierten Kursanstieg zwischen den tatsächlichen Oracle-Updates und ist
-          ausdrücklich nur eine Schätzung.
-        </p>
-        <p>
-          Blockchain-, RPC-, Fiat- und Marktdaten können verspätet, unvollständig oder zeitweise
-          nicht verfügbar sein. RocketYield ist ein Informationswerkzeug und keine Anlage-,
-          Steuer- oder Rechtsberatung.
         </p>
       </section>
 
