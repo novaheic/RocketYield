@@ -1,0 +1,51 @@
+:root {
+  color-scheme: dark;
+
+  --neutral-0: #ffffff;
+  --neutral-50: #f2f3f3;
+  --neutral-100: #d9dbdc;
+  --neutral-200: #b7babe;
+  --neutral-300: #92969a;
+  --neutral-400: #6f7478;
+  --neutral-500: #52575b;
+  --neutral-600: #393d40;
+  --neutral-700: #282b2e;
+  --neutral-800: #1a1c1e;
+  --neutral-850: #141618;
+  --neutral-900: #0f1112;
+  --neutral-950: #090a0b;
+
+  --primary: #f26b38;
+  --primary-strong: #ff8154;
+  --primary-muted: #49251a;
+  --positive: #68b88b;
+  --negative: #dc705f;
+  --warning: #d3a451;
+
+  --surface-base: var(--neutral-950);
+  --surface-raised: var(--neutral-900);
+  --surface-inset: #0c0e0f;
+  --border-subtle: #26292b;
+  --border-strong: #393d40;
+  --text-primary: var(--neutral-50);
+  --text-secondary: var(--neutral-300);
+  --text-muted: var(--neutral-400);
+
+  --radius: 6px;
+  --radius-sm: 2px;
+  --radius-md: var(--radius);
+  --radius-lg: 10px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  --content-max: 1480px;
+}

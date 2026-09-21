@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "rocketyield",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-09-21",
+  "d1_databases": [
+    {
+      "binding": "ANALYTICS_DB",
+      "database_name": "rocketyield-analytics",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "migrations_dir": "./migrations"
+    }
+  ],
+  "vars": {
+    "APP_ORIGIN": "https://rocketyield.pages.dev"
+  }
+}
