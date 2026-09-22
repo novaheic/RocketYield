@@ -111,12 +111,38 @@ describe('historical ETH prices', () => {
       entries,
       [{ timestamp: yesterday + 600, price: 2_500 }],
       3_000,
+      1,
       now,
     )
 
-    expect(rows[0].ethPriceUsd).toBe(3_000)
-    expect(rows[0].dollarValueUsd).toBeCloseTo(30)
-    expect(rows[1].ethPriceUsd).toBe(2_500)
-    expect(rows[1].dollarValueUsd).toBeCloseTo(50)
+    expect(rows[0].ethPrice).toBe(3_000)
+    expect(rows[0].fiatValue).toBeCloseTo(30)
+    expect(rows[1].ethPrice).toBe(2_500)
+    expect(rows[1].fiatValue).toBeCloseTo(50)
+  })
+
+  it('converts historical USD prices with the live FX factor', () => {
+    const now = Math.floor(Date.now() / 1000)
+    const yesterday = now - DAY
+    const entries: DailyEarningsLedgerEntry[] = [
+      {
+        date: localDateKey(yesterday),
+        timestamp: yesterday,
+        earnedEth: 0.02,
+        annualizedYield: 0.04,
+        balanceEth: 11.9,
+      },
+    ]
+
+    const rows = joinHistoricalPrices(
+      entries,
+      [{ timestamp: yesterday, price: 2_500 }],
+      2_700,
+      0.9,
+      now,
+    )
+
+    expect(rows[0].ethPrice).toBeCloseTo(2_250)
+    expect(rows[0].fiatValue).toBeCloseTo(45)
   })
 })

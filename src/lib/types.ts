@@ -58,8 +58,8 @@ export interface DailyEarningsLedgerEntry {
 }
 
 export interface DailyEarningsLedgerRow extends DailyEarningsLedgerEntry {
-  ethPriceUsd: number | null
-  dollarValueUsd: number | null
+  ethPrice: number | null
+  fiatValue: number | null
 }
 
 export interface EarningsWindows {

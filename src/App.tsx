@@ -217,7 +217,7 @@ export default function App() {
                 <MarketMilestone data={data} />
               </div>
               <AnalyticsCharts data={data} />
-              <DailyEarningsTable data={data} />
+              <DailyEarningsTable data={data} fiatCurrency={fiatCurrency} />
               <ToolFooter blockNumber={data.chainBlock} />
             </div>
           )}

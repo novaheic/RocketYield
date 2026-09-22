@@ -59,7 +59,7 @@ describe('DailyEarningsTable', () => {
   })
 
   it('paginates thirty rows at a time', async () => {
-    render(<DailyEarningsTable data={data} />)
+    render(<DailyEarningsTable data={data} fiatCurrency="USD" />)
 
     expect(screen.getAllByRole('row')).toHaveLength(31)
     expect(screen.getByRole('option', { name: 'Page 1 of 2' })).toBeInTheDocument()
@@ -72,7 +72,7 @@ describe('DailyEarningsTable', () => {
   })
 
   it('exports the complete ledger instead of only the current page', () => {
-    render(<DailyEarningsTable data={data} />)
+    render(<DailyEarningsTable data={data} fiatCurrency="EUR" />)
 
     fireEvent.click(screen.getByRole('button', { name: 'CSV' }))
     fireEvent.click(screen.getByRole('button', { name: 'JSON' }))
@@ -82,8 +82,17 @@ describe('DailyEarningsTable', () => {
       expect.arrayContaining([expect.objectContaining({ date: entries[0].date })]),
       'csv',
       data.address,
+      'EUR',
     )
     expect(mockedDownload.mock.calls[0][0]).toHaveLength(31)
     expect(mockedDownload.mock.calls[1][0]).toHaveLength(31)
+    expect(mockedDownload.mock.calls[1][3]).toBe('EUR')
+  })
+
+  it('labels value columns with the selected fiat currency', () => {
+    render(<DailyEarningsTable data={data} fiatCurrency="JPY" />)
+
+    expect(screen.getByRole('columnheader', { name: 'Value (JPY)' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'ETH Price (JPY)' })).toBeInTheDocument()
   })
 })

@@ -140,22 +140,54 @@ function nearestPrice(items: HistoricalPricePoint[], timestamp: number) {
   return Math.abs(selected.timestamp - timestamp) <= DAY_SECONDS * 1.5 ? selected.price : null
 }
 
+/**
+ * Joins ledger entries to prices. Historical series is ETH/USD from DefiLlama;
+ * pass `usdToFiat` (selectedFiat / USD) to convert completed days into the UI currency.
+ * Today's row uses `currentFiatPrice` directly when available.
+ */
 export function joinHistoricalPrices(
   entries: DailyEarningsLedgerEntry[],
   prices: HistoricalPricePoint[],
-  currentUsdPrice: number | null,
+  currentFiatPrice: number | null,
+  usdToFiat: number | null = 1,
   now = Math.floor(Date.now() / 1000),
 ): DailyEarningsLedgerRow[] {
   const today = localDateKey(now)
   return entries.map((entry) => {
-    const spotPrice = entry.date === today && currentUsdPrice && currentUsdPrice > 0
-      ? currentUsdPrice
-      : null
-    const ethPriceUsd = spotPrice ?? nearestPrice(prices, entry.timestamp)
+    let ethPrice: number | null = null
+    if (entry.date === today && currentFiatPrice && currentFiatPrice > 0) {
+      ethPrice = currentFiatPrice
+    } else {
+      const usdPrice = nearestPrice(prices, entry.timestamp)
+      ethPrice =
+        usdPrice === null || usdToFiat === null || !Number.isFinite(usdToFiat) || usdToFiat <= 0
+          ? null
+          : usdPrice * usdToFiat
+    }
     return {
       ...entry,
-      ethPriceUsd,
-      dollarValueUsd: ethPriceUsd === null ? null : entry.earnedEth * ethPriceUsd,
+      ethPrice,
+      fiatValue: ethPrice === null ? null : entry.earnedEth * ethPrice,
     }
   })
+}
+
+/** Live FX implied by current ETH spot prices: selectedFiat / USD. */
+export function usdToFiatFactor(
+  usdPrice: number | null,
+  fiatPrice: number | null,
+  currencyIsUsd: boolean,
+): number | null {
+  if (currencyIsUsd) return 1
+  if (
+    usdPrice === null ||
+    fiatPrice === null ||
+    !Number.isFinite(usdPrice) ||
+    !Number.isFinite(fiatPrice) ||
+    usdPrice <= 0 ||
+    fiatPrice <= 0
+  ) {
+    return null
+  }
+  return fiatPrice / usdPrice
 }

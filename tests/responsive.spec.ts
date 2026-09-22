@@ -40,8 +40,8 @@ test('the wide earnings table scrolls inside its section on mobile', async ({ pa
         <div class="earnings-table-scroll">
           <table class="earnings-table">
             <thead><tr>
-              <th>Date</th><th>Change (ETH)</th><th>Dollar Value</th>
-              <th>ETH Price</th><th>Annualized Yield</th><th>Balance (ETH)</th>
+              <th>Date</th><th>Change (ETH)</th><th>Value (USD)</th>
+              <th>ETH Price (USD)</th><th>Annualized Yield</th><th>Balance (ETH)</th>
             </tr></thead>
             <tbody><tr>
               <th>Sep 22, 2026</th><td>+0.00123456</td><td>$3.70</td>
