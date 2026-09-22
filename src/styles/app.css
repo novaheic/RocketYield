@@ -482,7 +482,7 @@
 }
 
 .eth-mark {
-  margin-left: 0.15em;
+  margin-right: 0.15em;
   font-weight: 600;
 }
 
@@ -497,6 +497,15 @@
   font-variant-numeric: tabular-nums;
   line-height: 1.35;
   text-align: right;
+}
+
+.opening-delta-eth,
+.opening-delta-fiat {
+  display: block;
+}
+
+.opening-delta-fiat:empty {
+  display: none;
 }
 
 .opening-delta-label {

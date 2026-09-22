@@ -34,21 +34,34 @@ export function BalanceHero({
   const ethRef = useRef<HTMLElement>(null)
   const visitEthRef = useRef<HTMLElement>(null)
   const visitFiatRef = useRef<HTMLElement>(null)
-  const ethRate = data.market.ethFiat[fiatCurrency]
-  const fiatDigits = ethRate === null
-    ? ETH_FRACTION_DIGITS
-    : liveFiatFractionDigits(ethRate, ETH_FRACTION_DIGITS)
+  const visitStartedAt = useRef(performance.now())
+  const fiatCurrencyRef = useRef(fiatCurrency)
+  const ethRateRef = useRef(data.market.ethFiat[fiatCurrency])
+
+  fiatCurrencyRef.current = fiatCurrency
+  ethRateRef.current = data.market.ethFiat[fiatCurrency]
 
   useEffect(() => {
-    const startedAt = performance.now()
+    visitStartedAt.current = performance.now()
+  }, [data.address, data.currentEth])
+
+  useEffect(() => {
     const baseEth = Number(data.currentEth) / 1e18
     const ethPerSecond = data.analytics.smoothedEthPerSecond
     let ethUnits = Math.round(baseEth / ETH_ULP)
-    let accruedUnits = 0
+    let accruedUnits = Math.round(
+      (ethPerSecond * Math.max(0, (performance.now() - visitStartedAt.current) / 1000)) / ETH_ULP,
+    )
     let frame = 0
 
     const paint = (now: number) => {
-      const accrued = ethPerSecond * Math.max(0, (now - startedAt) / 1000)
+      const currency = fiatCurrencyRef.current
+      const ethRate = ethRateRef.current
+      const fiatDigits = ethRate === null
+        ? ETH_FRACTION_DIGITS
+        : liveFiatFractionDigits(ethRate, ETH_FRACTION_DIGITS)
+
+      const accrued = ethPerSecond * Math.max(0, (now - visitStartedAt.current) / 1000)
       const targetEthUnits = Math.round((baseEth + accrued) / ETH_ULP)
       const targetAccruedUnits = Math.round(accrued / ETH_ULP)
 
@@ -59,15 +72,15 @@ export function BalanceHero({
       const accruedValue = accruedUnits * ETH_ULP
 
       if (ethRef.current) ethRef.current.textContent = displayNumber(ethValue)
-      if (visitEthRef.current) visitEthRef.current.textContent = `+${displayNumber(accruedValue)}`
+      if (visitEthRef.current) visitEthRef.current.textContent = displayNumber(accruedValue)
 
       if (visitFiatRef.current) {
         visitFiatRef.current.textContent = ethRate === null
           ? ''
-          : ` · ${formatFiatValue(accruedValue * ethRate, fiatCurrency, {
+          : formatFiatValue(accruedValue * ethRate, currency, {
               signed: true,
               fractionDigits: fiatDigits,
-            })}`
+            })
       }
 
       frame = window.requestAnimationFrame(paint)
@@ -75,14 +88,7 @@ export function BalanceHero({
 
     frame = window.requestAnimationFrame(paint)
     return () => window.cancelAnimationFrame(frame)
-  }, [
-    data.address,
-    data.currentEth,
-    data.analytics.smoothedEthPerSecond,
-    ethRate,
-    fiatCurrency,
-    fiatDigits,
-  ])
+  }, [data.address, data.currentEth, data.analytics.smoothedEthPerSecond])
 
   return (
     <section className="balance-hero" aria-labelledby="position-heading">
@@ -106,15 +112,16 @@ export function BalanceHero({
       <div className="balance-stage">
         <div className="balance-line">
           <span>ETH</span>
-          <strong ref={ethRef}>{displayNumber(Number(data.currentEth) / 1e18)}</strong>
+          <strong ref={ethRef} />
         </div>
 
         <div className="opening-delta">
-          <span>
-            <span ref={visitEthRef}>+{displayNumber(0)}</span>
+          <span className="opening-delta-eth">
+            <span aria-hidden="true">+</span>
             <span className="eth-mark" aria-label="ETH">Ξ</span>
-            <span ref={visitFiatRef} />
+            <span ref={visitEthRef} />
           </span>
+          <span className="opening-delta-fiat" ref={visitFiatRef} />
           <span className="opening-delta-label">this visit</span>
         </div>
       </div>
