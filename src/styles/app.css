@@ -397,7 +397,6 @@
 }
 
 .balance-hero {
-  min-height: 500px;
   padding: var(--space-8) 0 var(--space-12);
 }
 
@@ -498,46 +497,12 @@
   text-transform: uppercase;
 }
 
-.hero-facts {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-4);
-  margin-top: var(--space-12);
-  padding-top: var(--space-6);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.hero-facts span,
 .metric-cell > span {
   display: block;
   color: var(--text-muted);
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.hero-facts strong {
-  display: block;
-  margin-top: var(--space-2);
-  font-size: 13px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-
-.ticker-disclosure {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-start;
-  max-width: 700px;
-  margin: var(--space-6) 0 0;
-  color: var(--text-muted);
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.ticker-disclosure svg {
-  flex: 0 0 auto;
-  margin-top: 1px;
 }
 
 .metric-band {
@@ -1153,14 +1118,6 @@ footer a:hover {
     grid-template-columns: 1fr;
   }
 
-  .balance-hero {
-    min-height: 0;
-  }
-
-  .hero-facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .side-stack {
     grid-template-columns: 1fr;
   }
@@ -1229,10 +1186,6 @@ footer a:hover {
   .balance-support {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .hero-facts {
-    grid-template-columns: 1fr;
   }
 
   .metric-band {

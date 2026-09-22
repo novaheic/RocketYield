@@ -1,6 +1,5 @@
-import { Info } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { formatCountdown, formatDate, formatFiat } from '../lib/format'
+import { formatFiat } from '../lib/format'
 import { FIAT_CURRENCIES, type DashboardData, type FiatCurrency } from '../lib/types'
 
 interface BalanceHeroProps {
@@ -34,7 +33,6 @@ export function BalanceHero({
   const elapsedSeconds = Math.max(0, (now - openedAt.current) / 1000)
   const accrued = data.analytics.smoothedEthPerSecond * elapsedSeconds
   const estimatedEth = baseEth + accrued
-  const countdown = data.expectedNextUpdateAt - Math.floor(now / 1000)
 
   return (
     <section className="balance-hero" aria-labelledby="position-heading">
@@ -67,31 +65,6 @@ export function BalanceHero({
         </span>
         <span>{formatFiat(data.currentEth, data.market.ethFiat[fiatCurrency], fiatCurrency)}</span>
       </div>
-
-      <div className="hero-facts">
-        <div>
-          <span>rETH held</span>
-          <strong>{displayNumber(Number(data.currentReth) / 1e18)}</strong>
-        </div>
-        <div>
-          <span>Redemption rate</span>
-          <strong>{displayNumber(Number(data.currentRate) / 1e18)} ETH</strong>
-        </div>
-        <div>
-          <span>Last protocol update</span>
-          <strong>{formatDate(data.rateUpdatedAt)}</strong>
-        </div>
-        <div>
-          <span>Expected next update</span>
-          <strong>{formatCountdown(countdown)}</strong>
-        </div>
-      </div>
-
-      <p className="ticker-disclosure">
-        <Info size={14} aria-hidden="true" />
-        The counter smooths the recent realized rate into a per-second estimate. Rocket Pool’s
-        on-chain rate updates in steps, typically around once per day.
-      </p>
     </section>
   )
 }
