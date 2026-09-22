@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { AddressRail } from './components/AddressRail'
 import { AnalyticsCharts } from './components/AnalyticsCharts'
 import { BalanceHero } from './components/BalanceHero'
+import { DailyEarningsTable } from './components/DailyEarningsTable'
 import { MarketMilestone } from './components/MarketMilestone'
 import { MetricBand } from './components/MetricBand'
 import { ProjectionPanel } from './components/ProjectionPanel'
@@ -216,6 +217,7 @@ export default function App() {
                 <MarketMilestone data={data} />
               </div>
               <AnalyticsCharts data={data} />
+              <DailyEarningsTable data={data} />
               <ToolFooter blockNumber={data.chainBlock} />
             </div>
           )}

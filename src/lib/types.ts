@@ -49,6 +49,19 @@ export interface DailyEarning {
   earnedEth: number
 }
 
+export interface DailyEarningsLedgerEntry {
+  date: string
+  timestamp: number
+  earnedEth: number
+  annualizedYield: number
+  balanceEth: number
+}
+
+export interface DailyEarningsLedgerRow extends DailyEarningsLedgerEntry {
+  ethPriceUsd: number | null
+  dollarValueUsd: number | null
+}
+
 export interface EarningsWindows {
   today: bigint
   sevenDays: bigint

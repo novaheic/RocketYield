@@ -135,6 +135,7 @@ describe('App live-data states', () => {
     expect(screen.getByText(/currently holds no reth/i)).toBeInTheDocument()
     expect(screen.getByText(/on-chain figures are complete/i)).toBeInTheDocument()
     expect(screen.getByText('Current position')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Daily earnings history' })).toBeInTheDocument()
   })
 
   it('restores and remembers the selected fiat currency', () => {

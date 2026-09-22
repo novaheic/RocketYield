@@ -68,6 +68,8 @@ export function PrivacyPage() {
         <p>
           Für die Anzeige in USD, EUR, AUD, CAD, CNY, GBP, JPY oder KRW und den
           rETH/WETH-Marktvergleich stellt der Browser Anfragen an CoinGecko und GeckoTerminal.
+          Historische tägliche ETH/USD-Kurse für die Ertragstabelle werden von DefiLlama abgerufen
+          und zur Beschleunigung im IndexedDB-Speicher des Browsers zwischengespeichert.
           Dabei werden keine Wallet-Adresse und keine Portfoliodaten übermittelt; die Anbieter
           erhalten jedoch die technisch erforderliche
           IP-Adresse und Browserinformationen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Das
@@ -129,8 +131,9 @@ export function PrivacyPage() {
           data to host and protect the site. When you ask RocketYield to read a wallet or ENS name,
           your browser sends that query to Alchemy; the address also remains in your URL and may be
           stored in your own browser history. Your selected fiat currency is saved in localStorage
-          so it can be restored on later visits. CoinGecko and GeckoTerminal receive ordinary
-          browser request metadata when fiat and market prices are loaded.
+          so it can be restored on later visits. CoinGecko, GeckoTerminal, and DefiLlama receive
+          ordinary browser request metadata when current or historical prices are loaded.
+          Historical daily ETH/USD prices are cached in your browser’s IndexedDB storage.
         </p>
         <p>
           Cloudflare Web Analytics measures aggregate page views, visits, referral information,

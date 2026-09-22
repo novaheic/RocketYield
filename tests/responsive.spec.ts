@@ -26,6 +26,50 @@ test('full addresses remain contained at narrow widths', async ({ page }) => {
   expect(overflow).toBe(false)
 })
 
+test('the wide earnings table scrolls inside its section on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 })
+  await page.setContent(`
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>* { box-sizing: border-box; } html, body { margin: 0; }</style>
+    <main style="width: 100%; padding: 16px">
+      <section class="earnings-history">
+        <div class="earnings-history-toolbar">
+          <span>1,825 earning days</span>
+          <div class="earnings-export-actions"><button>CSV</button><button>JSON</button></div>
+        </div>
+        <div class="earnings-table-scroll">
+          <table class="earnings-table">
+            <thead><tr>
+              <th>Date</th><th>Change (ETH)</th><th>Dollar Value</th>
+              <th>ETH Price</th><th>Annualized Yield</th><th>Balance (ETH)</th>
+            </tr></thead>
+            <tbody><tr>
+              <th>Sep 22, 2026</th><td>+0.00123456</td><td>$3.70</td>
+              <td>$3,000.00</td><td>4.12%</td><td>12.345678</td>
+            </tr></tbody>
+          </table>
+        </div>
+        <nav class="earnings-pagination">
+          <button>First</button><button>Previous</button><select><option>Page 1 of 61</option></select>
+          <button>Next</button><button>Last</button>
+        </nav>
+      </section>
+    </main>
+  `)
+  await page.addStyleTag({ path: 'src/styles/tokens.css' })
+  await page.addStyleTag({ path: 'src/styles/app.css' })
+
+  const layout = await page.evaluate(() => {
+    const scroll = document.querySelector('.earnings-table-scroll') as HTMLElement
+    return {
+      pageOverflows: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      tableScrolls: scroll.scrollWidth > scroll.clientWidth,
+    }
+  })
+  expect(layout.pageOverflows).toBe(false)
+  expect(layout.tableScrolls).toBe(true)
+})
+
 test('public stats remain readable with large totals and thirty days of data', async ({ page }) => {
   await page.route('**/api/analytics/stats', (route) =>
     route.fulfill({
