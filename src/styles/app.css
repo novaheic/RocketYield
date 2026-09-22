@@ -447,11 +447,18 @@
   outline-offset: 2px;
 }
 
+.balance-stage {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
 .balance-line {
   display: flex;
   align-items: baseline;
   min-width: 0;
-  margin-top: var(--space-6);
 }
 
 .balance-line strong {
@@ -462,39 +469,38 @@
   letter-spacing: -0.035em;
   line-height: 0.9;
   overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
 .balance-line > span {
-  margin-left: var(--space-4);
+  flex-shrink: 0;
+  margin-right: var(--space-4);
   color: var(--primary);
   font-family: var(--font-display);
   font-size: clamp(28px, 4vw, 48px);
   font-weight: 500;
 }
 
-.balance-support {
-  display: flex;
-  gap: var(--space-4);
-  align-items: center;
-  margin-top: var(--space-4);
-  color: var(--text-secondary);
-  font-size: 13px;
+.eth-mark {
+  margin-left: 0.15em;
+  font-weight: 600;
 }
 
 .opening-delta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  padding-bottom: 0.2em;
   color: var(--positive);
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  text-align: right;
 }
 
-.estimate-tag {
-  margin-left: var(--space-2);
-  padding: 2px 5px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  font-size: 8px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+.opening-delta-label {
+  color: var(--text-secondary);
 }
 
 .metric-cell > span {
@@ -1167,6 +1173,12 @@ footer a:hover {
     padding-top: var(--space-8);
   }
 
+  .balance-stage {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
   .balance-line {
     display: block;
   }
@@ -1179,13 +1191,14 @@ footer a:hover {
 
   .balance-line > span {
     display: block;
-    margin: var(--space-2) 0 0;
+    margin: 0 0 var(--space-2);
     font-size: 26px;
   }
 
-  .balance-support {
+  .opening-delta {
     align-items: flex-start;
-    flex-direction: column;
+    padding-top: 0;
+    text-align: left;
   }
 
   .metric-band {
