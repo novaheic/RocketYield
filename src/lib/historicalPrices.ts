@@ -74,14 +74,11 @@ async function writeHistoricalPriceCache(items: HistoricalPricePoint[]) {
 }
 
 function coversRange(items: HistoricalPricePoint[], start: number, end: number) {
-  const first = items[0]
-  const last = items.at(-1)
-  return Boolean(
-    first &&
-    last &&
-    first.timestamp <= start + DAY_SECONDS &&
-    last.timestamp >= end - DAY_SECONDS,
-  )
+  // Match against the raw requested timestamps (local midnights), not UTC-floored
+  // bounds. A one-day slack on floored bounds previously let a cache that stopped at
+  // UTC day N claim coverage for local day N+1 in positive-offset timezones, so the
+  // newest completed row never refetched and fell outside nearestPrice's window.
+  return nearestPrice(items, start) !== null && nearestPrice(items, end) !== null
 }
 
 export async function loadHistoricalEthUsd(
@@ -89,14 +86,17 @@ export async function loadHistoricalEthUsd(
   endTimestamp: number,
   signal?: AbortSignal,
 ): Promise<HistoricalPricePoint[]> {
-  const start = utcDay(startTimestamp)
-  const end = utcDay(endTimestamp)
-  if (end < start) return []
+  if (endTimestamp < startTimestamp) return []
 
   const cached = await readHistoricalPriceCache()
-  if (coversRange(cached, start, end)) return cached
+  if (coversRange(cached, startTimestamp, endTimestamp)) return cached
 
-  const span = Math.floor((end - start) / DAY_SECONDS) + 1
+  // Floor the start for a stable API window, and extend one UTC day past the end so
+  // evening timezones (local midnight = previous UTC evening) still receive a candle
+  // for the newest completed local day.
+  const start = utcDay(startTimestamp)
+  const fetchEnd = utcDay(endTimestamp) + DAY_SECONDS
+  const span = Math.max(1, Math.floor((fetchEnd - start) / DAY_SECONDS) + 1)
   const url = `${PRICE_API}?start=${start}&period=1d&span=${span}`
   const response = await fetch(url, { signal, headers: { Accept: 'application/json' } })
   if (!response.ok) throw new Error(`Historical ETH prices unavailable (HTTP ${response.status})`)
@@ -159,10 +159,17 @@ export function joinHistoricalPrices(
       ethPrice = currentFiatPrice
     } else {
       const usdPrice = nearestPrice(prices, entry.timestamp)
-      ethPrice =
-        usdPrice === null || usdToFiat === null || !Number.isFinite(usdToFiat) || usdToFiat <= 0
-          ? null
-          : usdPrice * usdToFiat
+      if (usdPrice !== null && usdToFiat !== null && Number.isFinite(usdToFiat) && usdToFiat > 0) {
+        ethPrice = usdPrice * usdToFiat
+      } else if (
+        // DefiLlama can lag a few hours after a local day closes; use live spot
+        // for recently completed days so the newest row is not blank.
+        currentFiatPrice &&
+        currentFiatPrice > 0 &&
+        now - entry.timestamp < DAY_SECONDS * 2
+      ) {
+        ethPrice = currentFiatPrice
+      }
     }
     return {
       ...entry,

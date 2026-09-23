@@ -52,6 +52,45 @@ describe('historical ETH prices', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('refetches when the cache cannot match the newest requested day', async () => {
+    // Mirrors UTC+2: cache ends at UTC day N, newest ledger midnight is ~N+1d22h later.
+    // Old floored coversRange (last >= end - 1d) treated that as covered; nearestPrice
+    // then left the newest local day blank (>1.5d from the last candle).
+    idb.get.mockResolvedValue({
+      version: 1,
+      items: [
+        { timestamp: 9 * DAY, price: 1_900 },
+        { timestamp: 10 * DAY, price: 2_000 },
+      ],
+    })
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        coins: {
+          'coingecko:ethereum': {
+            prices: [
+              { timestamp: 10 * DAY, price: 2_000 },
+              { timestamp: 11 * DAY, price: 2_100 },
+              { timestamp: 12 * DAY, price: 2_200 },
+            ],
+          },
+        },
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const localNewestMidnight = 11 * DAY + 22 * 3_600
+    const result = await loadHistoricalEthUsd(9 * DAY, localNewestMidnight)
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(result.map((item) => item.timestamp)).toEqual([
+      9 * DAY,
+      10 * DAY,
+      11 * DAY,
+      12 * DAY,
+    ])
+  })
+
   it('fetches the requested range once and stores normalized valid prices', async () => {
     idb.get.mockResolvedValue(undefined)
     const fetchMock = vi.fn().mockResolvedValue({
@@ -63,6 +102,7 @@ describe('historical ETH prices', () => {
               { timestamp: 10 * DAY, price: 2_000 },
               { timestamp: 11 * DAY, price: -1 },
               { timestamp: 12 * DAY, price: 2_200 },
+              { timestamp: 13 * DAY, price: 2_300 },
             ],
           },
         },
@@ -74,10 +114,11 @@ describe('historical ETH prices', () => {
 
     expect(fetchMock).toHaveBeenCalledOnce()
     expect(fetchMock.mock.calls[0][0]).toContain(`start=${10 * DAY}`)
-    expect(fetchMock.mock.calls[0][0]).toContain('period=1d&span=3')
+    expect(fetchMock.mock.calls[0][0]).toContain('period=1d&span=4')
     expect(result).toEqual([
       { timestamp: 10 * DAY, price: 2_000 },
       { timestamp: 12 * DAY, price: 2_200 },
+      { timestamp: 13 * DAY, price: 2_300 },
     ])
     expect(idb.set).toHaveBeenCalledOnce()
   })
@@ -119,6 +160,25 @@ describe('historical ETH prices', () => {
     expect(rows[0].fiatValue).toBeCloseTo(30)
     expect(rows[1].ethPrice).toBe(2_500)
     expect(rows[1].fiatValue).toBeCloseTo(50)
+  })
+
+  it('falls back to live spot for a recent completed day with no historical match', () => {
+    const now = Math.floor(Date.now() / 1000)
+    const yesterday = Math.floor(new Date(now * 1000).setHours(0, 0, 0, 0) / 1000) - DAY
+    const entries: DailyEarningsLedgerEntry[] = [
+      {
+        date: localDateKey(yesterday),
+        timestamp: yesterday,
+        earnedEth: 0.02,
+        annualizedYield: 0.04,
+        balanceEth: 11.9,
+      },
+    ]
+
+    const rows = joinHistoricalPrices(entries, [], 2_700, 0.9, now)
+
+    expect(rows[0].ethPrice).toBe(2_700)
+    expect(rows[0].fiatValue).toBeCloseTo(54)
   })
 
   it('converts historical USD prices with the live FX factor', () => {
