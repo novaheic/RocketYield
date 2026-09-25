@@ -1,17 +1,18 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "rocketyield",
-  "pages_build_output_dir": "./dist",
-  "compatibility_date": "2026-09-21",
-  "vars": {
-    "CLOUDFLARE_ACCOUNT_ID": "REPLACE_WITH_YOUR_ACCOUNT_ID",
-    "WEB_ANALYTICS_SITE_TAG": "REPLACE_WITH_YOUR_WEB_ANALYTICS_SITE_TAG"
-  },
-  "kv_namespaces": [
-    {
-      "binding": "RATE_HISTORY",
-      "id": "REPLACE_WITH_RATE_HISTORY_KV_NAMESPACE_ID",
-      "preview_id": "REPLACE_WITH_RATE_HISTORY_KV_PREVIEW_ID"
-    }
-  ]
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "rocketyield",
+	"pages_build_output_dir": "./dist",
+	"compatibility_date": "2026-09-21",
+	"vars": {
+		"CLOUDFLARE_ACCOUNT_ID": "REPLACE_WITH_YOUR_ACCOUNT_ID",
+		"WEB_ANALYTICS_SITE_TAG": "REPLACE_WITH_YOUR_WEB_ANALYTICS_SITE_TAG"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "RATE_HISTORY",
+			"id": "22ca36cb4d1b46799545e65222d44e34",
+			"preview_id": "48b25a8bc38949df85df4b552d0e65f2",
+			"remote": true
+		}
+	]
 }
