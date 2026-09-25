@@ -97,6 +97,7 @@ describe('buildAnalytics', () => {
     expect(result.earnings.sevenDays).toBeGreaterThan(0n)
     expect(result.earnings.thirtyDays).toBeGreaterThanOrEqual(result.earnings.sevenDays)
     expect(Number.isFinite(result.yields.apr7d)).toBe(true)
+    expect(Number.isFinite(result.yields.apr365d)).toBe(true)
     expect(result.milestone?.etaDays).not.toBeNaN()
   })
 })

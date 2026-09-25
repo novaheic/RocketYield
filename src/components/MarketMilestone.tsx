@@ -1,5 +1,5 @@
-import { ArrowUpRight, Flag, Gauge } from 'lucide-react'
-import { formatDate, formatEta, formatPercent, formatSignedPercent } from '../lib/format'
+import { ArrowUpRight, Gauge } from 'lucide-react'
+import { formatDate, formatPercent, formatSignedPercent } from '../lib/format'
 import type { DashboardData } from '../lib/types'
 
 export function MarketMilestone({ data }: { data: DashboardData }) {
@@ -43,51 +43,27 @@ export function MarketMilestone({ data }: { data: DashboardData }) {
         </a>
       </article>
 
-      <article className="panel milestone-panel">
-        <header className="compact-header">
-          <Flag size={17} />
-          <h2>Next milestone</h2>
-        </header>
-        {analytics.milestone ? (
-          <>
-            <strong className="milestone-value">{analytics.milestone.targetEth} ETH earned</strong>
-            <p>{formatEta(analytics.milestone.etaDays)} at the current 7-day rate.</p>
-            <div className="milestone-track">
-              <span
-                style={{
-                  width: `${Math.max(
-                    4,
-                    Math.min(
-                      100,
-                      ((analytics.milestone.targetEth - analytics.milestone.remainingEth) /
-                        analytics.milestone.targetEth) *
-                        100,
-                    ),
-                  )}%`,
-                }}
-              />
-            </div>
-            <small>{analytics.milestone.remainingEth.toFixed(5)} ETH remaining</small>
-          </>
-        ) : (
-          <p>Your next milestone appears after another rate update.</p>
-        )}
-      </article>
-
       <article className="panel rate-panel">
         <header className="compact-header">
           <span className="section-index">03</span>
           <h2>Rate windows</h2>
         </header>
-        <div className="rate-row">
-          <span>7 day</span>
-          <strong>{formatPercent(analytics.yields.apr7d)} APR</strong>
-          <small>{formatPercent(analytics.yields.apy7d)} APY</small>
-        </div>
-        <div className="rate-row">
-          <span>30 day</span>
-          <strong>{formatPercent(analytics.yields.apr30d)} APR</strong>
-          <small>{formatPercent(analytics.yields.apy30d)} APY</small>
+        <div className="rate-grid">
+          <div className="rate-cell">
+            <span>7D</span>
+            <strong>{formatPercent(analytics.yields.apr7d)}</strong>
+            <small>APR · {formatPercent(analytics.yields.apy7d)} APY</small>
+          </div>
+          <div className="rate-cell">
+            <span>30D</span>
+            <strong>{formatPercent(analytics.yields.apr30d)}</strong>
+            <small>APR · {formatPercent(analytics.yields.apy30d)} APY</small>
+          </div>
+          <div className="rate-cell">
+            <span>365D</span>
+            <strong>{formatPercent(analytics.yields.apr365d)}</strong>
+            <small>APR · {formatPercent(analytics.yields.apy365d)} APY</small>
+          </div>
         </div>
       </article>
     </section>

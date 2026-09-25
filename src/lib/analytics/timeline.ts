@@ -147,11 +147,14 @@ export function buildAnalytics(
 
   const sevenDayYield = calculateYield(sortedRates, 7, now)
   const thirtyDayYield = calculateYield(sortedRates, 30, now)
+  const yearYield = calculateYield(sortedRates, 365, now)
   const yields: YieldRates = {
     apr7d: sevenDayYield.apr,
     apy7d: sevenDayYield.apy,
     apr30d: thirtyDayYield.apr,
     apy30d: thirtyDayYield.apy,
+    apr365d: yearYield.apr,
+    apy365d: yearYield.apy,
   }
 
   const currentEth = previousRate ? toEthNumber((currentBalance * previousRate.rate) / WAD) : 0

@@ -30,7 +30,14 @@ const dashboard: DashboardData = {
   ],
   analytics: {
     earnings: { today: 0n, sevenDays: 0n, thirtyDays: 0n, ninetyDays: 0n, lifetime: 0n },
-    yields: { apr7d: 0.04, apy7d: 0.041, apr30d: 0.038, apy30d: 0.039 },
+    yields: {
+      apr7d: 0.04,
+      apy7d: 0.041,
+      apr30d: 0.038,
+      apy30d: 0.039,
+      apr365d: 0.035,
+      apy365d: 0.036,
+    },
     projections: {
       current: { day: 0n, month: 0n, year: 0n },
       thirtyDayAverage: { day: 0n, month: 0n, year: 0n },

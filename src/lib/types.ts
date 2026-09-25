@@ -75,6 +75,8 @@ export interface YieldRates {
   apy7d: number
   apr30d: number
   apy30d: number
+  apr365d: number
+  apy365d: number
 }
 
 export interface Projections {

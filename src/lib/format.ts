@@ -76,13 +76,6 @@ export function formatCountdown(seconds: number) {
   return `${hours}h ${minutes}m`
 }
 
-export function formatEta(days: number | null) {
-  if (days === null || !Number.isFinite(days)) return 'rate unavailable'
-  if (days < 1) return `about ${Math.max(1, Math.round(days * 24))} hours`
-  if (days < 60) return `about ${Math.ceil(days)} days`
-  return `about ${Math.ceil(days / 30.4375)} months`
-}
-
 export function shortAddress(address: string) {
   return `${address.slice(0, 7)}…${address.slice(-5)}`
 }
