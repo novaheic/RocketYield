@@ -9,17 +9,15 @@ import type {
   ValuePoint,
   YieldRates,
 } from '../types'
+import { estimateTodayEarnings } from './dailyEarnings'
+import { WAD, toEthNumber } from './units'
 
-export const WAD = 10n ** 18n
+export { WAD, toEthNumber } from './units'
 const DAY = 86_400
 
 interface EarningEvent {
   timestamp: number
   earned: bigint
-}
-
-export function toEthNumber(value: bigint) {
-  return Number(value) / 1e18
 }
 
 function rateAtOrBefore(rates: RatePoint[], timestamp: number) {
@@ -44,12 +42,6 @@ function calculateYield(rates: RatePoint[], days: number, now: number) {
 
 function sumSince(events: EarningEvent[], timestamp: number) {
   return events.reduce((sum, event) => (event.timestamp >= timestamp ? sum + event.earned : sum), 0n)
-}
-
-function startOfToday(timestamp: number) {
-  const date = new Date(timestamp * 1000)
-  date.setHours(0, 0, 0, 0)
-  return Math.floor(date.getTime() / 1000)
 }
 
 function toWei(value: number) {
@@ -128,13 +120,9 @@ export function buildAnalytics(
   }
 
   const lifetime = earningEvents.reduce((sum, item) => sum + item.earned, 0n)
-  const earnings: EarningsWindows = {
-    today: sumSince(earningEvents, startOfToday(now)),
-    sevenDays: sumSince(earningEvents, now - 7 * DAY),
-    thirtyDays: sumSince(earningEvents, now - 30 * DAY),
-    ninetyDays: sumSince(earningEvents, now - 90 * DAY),
-    lifetime,
-  }
+  const sevenDaySum = sumSince(earningEvents, now - 7 * DAY)
+  const thirtyDaySum = sumSince(earningEvents, now - 30 * DAY)
+  const ninetyDaySum = sumSince(earningEvents, now - 90 * DAY)
 
   const dailyMap = new Map<number, bigint>()
   for (const event of earningEvents) {
@@ -159,6 +147,20 @@ export function buildAnalytics(
 
   const currentEth = previousRate ? toEthNumber((currentBalance * previousRate.rate) / WAD) : 0
   const currentDaily = currentEth * (sevenDayYield.apr / 365)
+  const smoothedEthPerSecond = currentDaily / DAY
+  const todayEstimate = estimateTodayEarnings(
+    sortedTransfers,
+    sortedRates,
+    smoothedEthPerSecond,
+    now,
+  )
+  const earnings: EarningsWindows = {
+    today: toWei(todayEstimate.ethAt),
+    sevenDays: sevenDaySum,
+    thirtyDays: thirtyDaySum,
+    ninetyDays: ninetyDaySum,
+    lifetime,
+  }
   const averageDaily = toEthNumber(earnings.thirtyDays) / 30
   const projections: Projections = {
     current: projectionFromDaily(currentDaily),
@@ -173,6 +175,6 @@ export function buildAnalytics(
     valueSeries,
     dailyEarnings,
     milestone: nextMilestone(lifetime, currentDaily),
-    smoothedEthPerSecond: currentDaily / DAY,
+    smoothedEthPerSecond,
   }
 }

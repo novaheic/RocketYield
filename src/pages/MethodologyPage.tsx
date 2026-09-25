@@ -30,7 +30,9 @@ export function MethodologyPage() {
         <div className="formula">Earnings = Σ(balance held during interval × rate change)</div>
         <p>
           Today, 7-day, 30-day, and 90-day figures use the same timeline clipped to each time
-          window. The shared exchange-rate grid (daily for the latest ~90 days, monthly for older
+          window. Today is a live estimate: transfer-aware earnings since local midnight through
+          the latest rate sample, plus a smoothed accrual at the trailing yield afterward. The
+          shared exchange-rate grid (daily for the latest ~90 days, monthly for older
           chart history) is loaded from RocketYield’s Cloudflare-backed `/api/rates` cache when
           available; the browser then fills rates at every transfer block for the viewed address.
           Without that API (for example under plain local Vite), the browser samples the full grid

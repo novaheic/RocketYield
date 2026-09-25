@@ -1,5 +1,5 @@
 import type { DailyEarningsLedgerEntry, RatePoint, TransferPoint } from '../types'
-import { WAD, toEthNumber } from './timeline'
+import { WAD, toEthNumber } from './units'
 
 const DAY_SECONDS = 86_400
 const YEAR_DAYS = 365
@@ -56,6 +56,136 @@ function annualizedRate(startRate: bigint, endRate: bigint, elapsedSeconds: numb
   return growth * ((YEAR_DAYS * DAY_SECONDS) / elapsedSeconds)
 }
 
+function sortTransfers(transfers: TransferPoint[]) {
+  return [...transfers].sort((a, b) => {
+    if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp
+    if (a.blockNumber !== b.blockNumber) return a.blockNumber < b.blockNumber ? -1 : 1
+    return a.logIndex - b.logIndex
+  })
+}
+
+function sortRates(rates: RatePoint[]) {
+  return [...rates]
+    .filter((point) => Number.isFinite(point.timestamp))
+    .sort((a, b) => a.timestamp - b.timestamp)
+}
+
+/**
+ * Balance-weighted earnings over [start, end] using the same linear rate allocation
+ * and transfer splits as the daily ledger.
+ */
+function earningsBetween(
+  transfers: TransferPoint[],
+  rates: RatePoint[],
+  start: number,
+  end: number,
+): bigint {
+  if (rates.length < 1 || end <= start) return 0n
+
+  const sortedTransfers = sortTransfers(transfers)
+  let balance = 0n
+  let transferIndex = 0
+  while (
+    transferIndex < sortedTransfers.length &&
+    sortedTransfers[transferIndex].timestamp <= start
+  ) {
+    balance += sortedTransfers[transferIndex].delta
+    transferIndex += 1
+  }
+
+  let segmentStart = start
+  let earned = 0n
+
+  while (
+    transferIndex < sortedTransfers.length &&
+    sortedTransfers[transferIndex].timestamp < end
+  ) {
+    const transferTimestamp = Math.max(sortedTransfers[transferIndex].timestamp, segmentStart)
+    earned += positiveEarnings(
+      balance,
+      rateAt(rates, segmentStart),
+      rateAt(rates, transferTimestamp),
+    )
+
+    const timestamp = sortedTransfers[transferIndex].timestamp
+    while (
+      transferIndex < sortedTransfers.length &&
+      sortedTransfers[transferIndex].timestamp === timestamp
+    ) {
+      balance += sortedTransfers[transferIndex].delta
+      transferIndex += 1
+    }
+    segmentStart = transferTimestamp
+  }
+
+  earned += positiveEarnings(balance, rateAt(rates, segmentStart), rateAt(rates, end))
+  return earned
+}
+
+function balanceAfter(transfers: TransferPoint[], timestamp: number) {
+  let balance = 0n
+  for (const transfer of sortTransfers(transfers)) {
+    if (transfer.timestamp > timestamp) break
+    balance += transfer.delta
+  }
+  return balance
+}
+
+function tickStartForToday(
+  transfers: TransferPoint[],
+  dayStart: number,
+  lastRateTimestamp: number,
+  now: number,
+) {
+  if (lastRateTimestamp >= dayStart) return Math.min(Math.max(dayStart, lastRateTimestamp), now)
+
+  if (balanceAfter(transfers, dayStart) > 0n) return dayStart
+
+  for (const transfer of sortTransfers(transfers)) {
+    if (transfer.timestamp < dayStart) continue
+    if (transfer.timestamp > now) break
+    if (balanceAfter(transfers, transfer.timestamp) > 0n) return transfer.timestamp
+  }
+
+  return now
+}
+
+export interface TodayEarningsEstimate {
+  /** Ledger-style ETH earned from local midnight through the last known rate sample. */
+  realizedEth: number
+  /** Unix seconds after which `ethPerSecond` should be accrued. */
+  tickFrom: number
+  /** Realized + smoothed accrual evaluated at `now`. */
+  ethAt: number
+}
+
+/**
+ * Live-friendly "today so far" estimate: transfer-aware earnings since local midnight
+ * through the latest rate sample, plus optional smoothed accrual afterward.
+ */
+export function estimateTodayEarnings(
+  transfers: TransferPoint[],
+  rates: RatePoint[],
+  ethPerSecond: number,
+  now = Math.floor(Date.now() / 1000),
+): TodayEarningsEstimate {
+  const dayStart = startOfLocalDay(now)
+  const sortedRates = sortRates(rates)
+  const lastRateTimestamp = sortedRates.at(-1)?.timestamp ?? dayStart
+  const realizedEnd = Math.min(now, Math.max(dayStart, lastRateTimestamp))
+  const realized = sortedRates.length >= 1
+    ? earningsBetween(transfers, sortedRates, dayStart, realizedEnd)
+    : 0n
+  const realizedEth = toEthNumber(realized)
+  const tickFrom = tickStartForToday(transfers, dayStart, lastRateTimestamp, now)
+  const accrued = Math.max(0, ethPerSecond) * Math.max(0, now - tickFrom)
+  return {
+    realizedEth,
+    tickFrom,
+    ethAt: realizedEth + accrued,
+  }
+}
+
 /**
  * Builds completed browser-local calendar-day earnings without adding historical RPC reads.
  * Rate growth between sampled points is allocated linearly, while transfers split
@@ -68,16 +198,10 @@ export function buildDailyEarningsLedger(
 ): DailyEarningsLedgerEntry[] {
   if (rates.length < 2) return []
 
-  const sortedRates = [...rates]
-    .filter((point) => Number.isFinite(point.timestamp))
-    .sort((a, b) => a.timestamp - b.timestamp)
+  const sortedRates = sortRates(rates)
   if (sortedRates.length < 2) return []
 
-  const sortedTransfers = [...transfers].sort((a, b) => {
-    if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp
-    if (a.blockNumber !== b.blockNumber) return a.blockNumber < b.blockNumber ? -1 : 1
-    return a.logIndex - b.logIndex
-  })
+  const sortedTransfers = sortTransfers(transfers)
 
   const firstTimestamp = sortedRates[0].timestamp
   const lastTimestamp = Math.min(now, sortedRates.at(-1)!.timestamp)

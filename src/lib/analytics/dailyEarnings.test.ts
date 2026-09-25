@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Address, Hash } from 'viem'
 import type { RatePoint, TransferPoint } from '../types'
-import { buildDailyEarningsLedger } from './dailyEarnings'
+import { buildDailyEarningsLedger, estimateTodayEarnings } from './dailyEarnings'
 import { WAD } from './timeline'
 
 const wallet = '0x1111111111111111111111111111111111111111' as Address
@@ -111,5 +111,43 @@ describe('buildDailyEarningsLedger', () => {
     )
 
     expect(result).toEqual([])
+  })
+})
+
+describe('estimateTodayEarnings', () => {
+  it('accrues a smoothed estimate after the last rate sample on an incomplete day', () => {
+    const dayStart = localTime(2026, 6, 10)
+    const midday = localTime(2026, 6, 10, 12)
+    const now = localTime(2026, 6, 10, 18)
+    const ethPerSecond = 0.01 / 86_400
+
+    const result = estimateTodayEarnings(
+      [transfer(1n, 1, dayStart)],
+      [rate(1n, 1, dayStart), rate(2n, 1.01, midday)],
+      ethPerSecond,
+      now,
+    )
+
+    expect(result.realizedEth).toBeCloseTo(0.01, 8)
+    expect(result.tickFrom).toBe(midday)
+    expect(result.ethAt).toBeCloseTo(0.01 + ethPerSecond * (now - midday), 10)
+  })
+
+  it('starts the smoothed tick at first hold when the last rate is before today', () => {
+    const yesterday = localTime(2026, 6, 9)
+    const buy = localTime(2026, 6, 10, 8)
+    const now = localTime(2026, 6, 10, 12)
+    const ethPerSecond = 0.02 / 86_400
+
+    const result = estimateTodayEarnings(
+      [transfer(2n, 1, buy)],
+      [rate(1n, 1, yesterday), rate(2n, 1, yesterday + 60)],
+      ethPerSecond,
+      now,
+    )
+
+    expect(result.realizedEth).toBe(0)
+    expect(result.tickFrom).toBe(buy)
+    expect(result.ethAt).toBeCloseTo(ethPerSecond * (now - buy), 10)
   })
 })

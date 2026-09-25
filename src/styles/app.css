@@ -821,6 +821,48 @@
   border-bottom: 1px solid var(--border-strong);
 }
 
+.chart-panel-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.chart-range + .chart-mode {
+  margin-left: var(--space-1);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--border-strong);
+}
+
+.chart-range,
+.chart-mode {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.chart-range button,
+.chart-mode button {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-inset);
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 6px 10px;
+}
+
+.chart-range button:hover,
+.chart-mode button:hover {
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+.chart-range button.is-active,
+.chart-mode button.is-active {
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
 .chart-attribution {
   color: var(--text-secondary);
   text-underline-offset: 2px;
@@ -832,7 +874,7 @@
 
 .chart-grid {
   display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
 }
 
@@ -843,25 +885,23 @@
   background: var(--surface-raised);
 }
 
-.chart-value {
-  grid-column: 1 / -1;
+.chart-main {
   border-radius: var(--radius-lg);
 }
 
-.chart-rate {
-  border-radius: var(--radius-sm);
-}
-
-.chart-earnings {
-  border-radius: var(--radius-md);
+.chart-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
 }
 
 .chart-label {
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-4);
-  align-items: baseline;
-  margin-bottom: var(--space-4);
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .chart-label h3 {
@@ -873,7 +913,6 @@
 .chart-label span {
   color: var(--text-muted);
   font-size: 10px;
-  text-align: right;
 }
 
 .chart-canvas {
@@ -1267,21 +1306,21 @@ footer a:hover {
     grid-template-columns: 1fr;
   }
 
-  .chart-value {
-    grid-column: auto;
-  }
-
   .chart-panel {
     padding: var(--space-4);
   }
 
-  .chart-label {
-    align-items: flex-start;
+  .chart-panel-header {
     flex-direction: column;
+    align-items: stretch;
   }
 
-  .chart-label span {
-    text-align: left;
+  .chart-panel-controls {
+    justify-content: flex-start;
+  }
+
+  .chart-range {
+    flex-wrap: wrap;
   }
 
   .earnings-history-toolbar {
