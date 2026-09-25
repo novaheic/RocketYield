@@ -821,6 +821,15 @@
   border-bottom: 1px solid var(--border-strong);
 }
 
+.chart-attribution {
+  color: var(--text-secondary);
+  text-underline-offset: 2px;
+}
+
+.chart-attribution:hover {
+  color: var(--text-primary);
+}
+
 .chart-grid {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);

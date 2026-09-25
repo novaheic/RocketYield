@@ -17,6 +17,7 @@ const chartOptions = {
     textColor: '#92969a',
     fontFamily: "'IBM Plex Sans', sans-serif",
     fontSize: 11,
+    attributionLogo: false,
   },
   grid: {
     vertLines: { color: '#1a1c1e' },
@@ -125,7 +126,17 @@ export function AnalyticsCharts({ data }: ChartProps) {
           <History className="section-icon" size={18} aria-hidden="true" />
           <h2>Position history</h2>
         </div>
-        <p>Protocol rate, realized daily earnings, and transfer-aware ETH value</p>
+        <p>
+          Charts by{' '}
+          <a
+            className="chart-attribution"
+            href="https://www.tradingview.com/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            TradingView
+          </a>
+        </p>
       </header>
       <div className="chart-grid">
         <article className="chart-panel chart-rate">

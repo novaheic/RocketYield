@@ -1,5 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { formatFiatValue, liveFiatFractionDigits } from '../lib/format'
+import {
+  formatFiatValue,
+  liveEthFractionDigits,
+  liveFiatFractionDigits,
+} from '../lib/format'
 import { FIAT_CURRENCIES, type DashboardData, type FiatCurrency } from '../lib/types'
 
 interface BalanceHeroProps {
@@ -8,15 +12,13 @@ interface BalanceHeroProps {
   onFiatCurrencyChange: (currency: FiatCurrency) => void
 }
 
-const ETH_FRACTION_DIGITS = 9
-const ETH_ULP = 10 ** -ETH_FRACTION_DIGITS
 /** Fraction of the remaining display-unit gap closed each frame — keeps ticks consecutive but very fast. */
 const CATCH_UP = 0.55
 
-function displayNumber(value: number) {
+function displayNumber(value: number, fractionDigits: number) {
   return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: ETH_FRACTION_DIGITS,
-    maximumFractionDigits: ETH_FRACTION_DIGITS,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(value)
 }
 
@@ -48,9 +50,11 @@ export function BalanceHero({
   useEffect(() => {
     const baseEth = Number(data.currentEth) / 1e18
     const ethPerSecond = data.analytics.smoothedEthPerSecond
-    let ethUnits = Math.round(baseEth / ETH_ULP)
+    const fractionDigits = liveEthFractionDigits(ethPerSecond)
+    const ethUlp = 10 ** -fractionDigits
+    let ethUnits = Math.round(baseEth / ethUlp)
     let accruedUnits = Math.round(
-      (ethPerSecond * Math.max(0, (performance.now() - visitStartedAt.current) / 1000)) / ETH_ULP,
+      (ethPerSecond * Math.max(0, (performance.now() - visitStartedAt.current) / 1000)) / ethUlp,
     )
     let frame = 0
 
@@ -58,21 +62,21 @@ export function BalanceHero({
       const currency = fiatCurrencyRef.current
       const ethRate = ethRateRef.current
       const fiatDigits = ethRate === null
-        ? ETH_FRACTION_DIGITS
-        : liveFiatFractionDigits(ethRate, ETH_FRACTION_DIGITS)
+        ? fractionDigits
+        : liveFiatFractionDigits(ethRate, fractionDigits)
 
       const accrued = ethPerSecond * Math.max(0, (now - visitStartedAt.current) / 1000)
-      const targetEthUnits = Math.round((baseEth + accrued) / ETH_ULP)
-      const targetAccruedUnits = Math.round(accrued / ETH_ULP)
+      const targetEthUnits = Math.round((baseEth + accrued) / ethUlp)
+      const targetAccruedUnits = Math.round(accrued / ethUlp)
 
       ethUnits = stepToward(ethUnits, targetEthUnits)
       accruedUnits = stepToward(accruedUnits, targetAccruedUnits)
 
-      const ethValue = ethUnits * ETH_ULP
-      const accruedValue = accruedUnits * ETH_ULP
+      const ethValue = ethUnits * ethUlp
+      const accruedValue = accruedUnits * ethUlp
 
-      if (ethRef.current) ethRef.current.textContent = displayNumber(ethValue)
-      if (visitEthRef.current) visitEthRef.current.textContent = displayNumber(accruedValue)
+      if (ethRef.current) ethRef.current.textContent = displayNumber(ethValue, fractionDigits)
+      if (visitEthRef.current) visitEthRef.current.textContent = displayNumber(accruedValue, fractionDigits)
 
       if (visitFiatRef.current) {
         visitFiatRef.current.textContent = ethRate === null

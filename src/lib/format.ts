@@ -38,11 +38,24 @@ export function formatFiatValue(
   return formatted
 }
 
+/**
+ * ETH fraction digits so the live ticker advances about once per `targetTickMs`.
+ * Small balances need more places; large ones stay near the previous 9-digit floor.
+ * Hard-capped at 12 so the hero balance does not overflow typical viewports.
+ */
+export function liveEthFractionDigits(ethPerSecond: number, targetTickMs = 40) {
+  if (!Number.isFinite(ethPerSecond) || ethPerSecond <= 0) return 9
+  const ulp = ethPerSecond * (targetTickMs / 1000)
+  if (!(ulp > 0)) return 9
+  const digits = Math.ceil(-Math.log10(ulp))
+  return Math.min(12, Math.max(9, digits))
+}
+
 /** Fiat fraction digits so one ETH display ULP remains visible at the given rate. */
 export function liveFiatFractionDigits(ethRate: number, ethFractionDigits = 9) {
   if (!Number.isFinite(ethRate) || ethRate <= 0) return ethFractionDigits
   const digits = Math.ceil(ethFractionDigits - Math.log10(ethRate))
-  return Math.min(9, Math.max(2, digits))
+  return Math.min(10, Math.max(2, digits))
 }
 
 export function formatFiat(eth: bigint, rate: number | null, currency: FiatCurrency) {

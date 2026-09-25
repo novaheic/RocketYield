@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { formatFiat, formatFiatValue, liveFiatFractionDigits } from './format'
+import {
+  formatFiat,
+  formatFiatValue,
+  liveEthFractionDigits,
+  liveFiatFractionDigits,
+} from './format'
 
 describe('formatFiat', () => {
   it('formats values with the selected currency', () => {
@@ -28,9 +33,34 @@ describe('formatFiatValue', () => {
   })
 })
 
+describe('liveEthFractionDigits', () => {
+  it('keeps the previous 9-digit floor for zero or unknown yield', () => {
+    expect(liveEthFractionDigits(0)).toBe(9)
+    expect(liveEthFractionDigits(Number.NaN)).toBe(9)
+  })
+
+  it('adds places so a small balance ticks about every 40ms', () => {
+    // ~0.389 ETH at ~2.5% APY ≈ 3e-10 ETH/s → 9 digits only move every few seconds
+    expect(liveEthFractionDigits(3e-10)).toBe(11)
+  })
+
+  it('caps at 12 digits so the hero stays readable', () => {
+    expect(liveEthFractionDigits(1e-14)).toBe(12)
+  })
+
+  it('stays near 9 digits when accrual is already fast', () => {
+    expect(liveEthFractionDigits(5e-8)).toBe(9)
+  })
+})
+
 describe('liveFiatFractionDigits', () => {
   it('keeps fiat ticks aligned with ETH display precision', () => {
     expect(liveFiatFractionDigits(3_000, 9)).toBe(6)
     expect(liveFiatFractionDigits(150, 9)).toBe(7)
+    expect(liveFiatFractionDigits(3_000, 11)).toBe(8)
+  })
+
+  it('caps fiat places for the visit delta line', () => {
+    expect(liveFiatFractionDigits(150, 12)).toBe(10)
   })
 })
