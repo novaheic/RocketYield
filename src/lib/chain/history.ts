@@ -19,11 +19,14 @@ import {
 const LOG_BLOCK_CHUNK = 200_000n
 const MIN_LOG_BLOCK_CHUNK = 2_000n
 const BLOCK_BATCH_SIZE = 16
-const RATE_SAMPLE_BATCH_SIZE = 2
+const RATE_SAMPLE_BATCH_SIZE = 8
 const RECENT_SAMPLE_BLOCKS = 7_200n
 const RECENT_SAMPLE_COUNT = 90n
 const HISTORICAL_SAMPLE_BLOCKS = 216_000n
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+const RATE_LIMIT_RETRY_MS = 500
+
+export type SharedRatesFetcher = (signal?: AbortSignal) => Promise<RatePoint[] | null>
 
 type ProgressCallback = (progress: LoadProgress) => void
 
@@ -337,7 +340,7 @@ export async function loadTransferHistory(
   }
 }
 
-function buildRateSampleBlocks(latestBlock: bigint, transferBlocks: bigint[]) {
+export function buildRateSampleBlocks(latestBlock: bigint, transferBlocks: bigint[]) {
   const samples = new Set<string>()
   const recentStart = latestBlock - RECENT_SAMPLE_BLOCKS * RECENT_SAMPLE_COUNT > RETH_DEPLOYMENT_BLOCK
     ? latestBlock - RECENT_SAMPLE_BLOCKS * RECENT_SAMPLE_COUNT
@@ -361,59 +364,170 @@ function buildRateSampleBlocks(latestBlock: bigint, transferBlocks: bigint[]) {
   return [...samples].map(BigInt).sort((a, b) => a < b ? -1 : a > b ? 1 : 0)
 }
 
+function buildTransferFillBlocks(latestBlock: bigint, transferBlocks: bigint[]) {
+  const samples = new Set<string>()
+  for (const block of transferBlocks) {
+    if (block >= RETH_DEPLOYMENT_BLOCK && block <= latestBlock) samples.add(block.toString())
+  }
+  samples.add(latestBlock.toString())
+  return [...samples].map(BigInt).sort((a, b) => a < b ? -1 : a > b ? 1 : 0)
+}
+
+function mergeRatePoints(points: RatePoint[]) {
+  const deduped = new Map<string, RatePoint>()
+  for (const point of points) {
+    deduped.set(point.blockNumber.toString(), point)
+  }
+  return [...deduped.values()].sort((a, b) => a.timestamp - b.timestamp)
+}
+
+function parseSharedRateResponse(payload: unknown): RatePoint[] | null {
+  if (!payload || typeof payload !== 'object') return null
+  const items = (payload as { items?: unknown }).items
+  if (!Array.isArray(items) || items.length === 0) return null
+  const points: RatePoint[] = []
+  for (const item of items) {
+    if (!item || typeof item !== 'object') return null
+    const raw = item as { blockNumber?: unknown; timestamp?: unknown; rate?: unknown }
+    if (
+      typeof raw.blockNumber !== 'string'
+      || typeof raw.timestamp !== 'number'
+      || typeof raw.rate !== 'string'
+    ) {
+      return null
+    }
+    try {
+      points.push({
+        blockNumber: BigInt(raw.blockNumber),
+        timestamp: raw.timestamp,
+        rate: BigInt(raw.rate),
+      })
+    } catch {
+      return null
+    }
+  }
+  return points
+}
+
+export async function fetchSharedRates(signal?: AbortSignal): Promise<RatePoint[] | null> {
+  try {
+    const response = await fetch('/api/rates', { signal })
+    if (!response.ok) return null
+    return parseSharedRateResponse(await response.json())
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error
+    return null
+  }
+}
+
+function isRateLimitError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  const lower = message.toLowerCase()
+  return lower.includes('429') || lower.includes('rate limit')
+}
+
+async function sampleRatesAtBlocks(
+  blocks: bigint[],
+  onProgress: ProgressCallback,
+  label: string,
+  signal?: AbortSignal,
+): Promise<RatePoint[]> {
+  const rpc = getMainnetClient()
+  const fresh: RatePoint[] = []
+
+  for (let index = 0; index < blocks.length; index += RATE_SAMPLE_BATCH_SIZE) {
+    throwIfAborted(signal)
+    onProgress({
+      phase: 'rates',
+      label,
+      completed: index,
+      total: blocks.length,
+    })
+    const batch = blocks.slice(index, index + RATE_SAMPLE_BATCH_SIZE)
+
+    let attempt = 0
+    while (true) {
+      try {
+        const points = await Promise.all(
+          batch.map(async (blockNumber) => {
+            const [rate, block] = await Promise.all([
+              rpc.readContract({
+                address: RETH_ADDRESS,
+                abi: RETH_ABI,
+                functionName: 'getExchangeRate',
+                blockNumber,
+              }),
+              rpc.getBlock({ blockNumber }),
+            ])
+            return {
+              blockNumber,
+              timestamp: Number(block.timestamp),
+              rate,
+            } satisfies RatePoint
+          }),
+        )
+        fresh.push(...points)
+        break
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') throw error
+        if (!isRateLimitError(error) || attempt >= 1) throw error
+        attempt += 1
+        await new Promise((resolve) => window.setTimeout(resolve, RATE_LIMIT_RETRY_MS))
+      }
+    }
+  }
+
+  return fresh
+}
+
 export async function loadRateHistory(
   latestBlock: bigint,
   transferBlocks: bigint[],
   onProgress: ProgressCallback,
   signal?: AbortSignal,
+  fetchShared: SharedRatesFetcher = fetchSharedRates,
 ): Promise<RatePoint[]> {
-  const rpc = getMainnetClient()
   const cached = await readRateCache()
-  const existing = cached?.items ?? []
-  const existingBlocks = new Set(existing.map((point) => point.blockNumber.toString()))
-  const sampleBlocks = buildRateSampleBlocks(latestBlock, transferBlocks)
-    .filter((block) => !existingBlocks.has(block.toString()))
+  let existing = cached?.items ?? []
 
   try {
-    const fresh: RatePoint[] = []
-    for (let index = 0; index < sampleBlocks.length; index += RATE_SAMPLE_BATCH_SIZE) {
-      throwIfAborted(signal)
+    onProgress({
+      phase: 'rates',
+      label: 'Loading shared Rocket Pool rates',
+      completed: 0,
+      total: 1,
+    })
+    const shared = await fetchShared(signal)
+    const usedSharedFeed = Boolean(shared?.length)
+    if (shared?.length) {
+      existing = mergeRatePoints([...existing, ...shared])
       onProgress({
         phase: 'rates',
-        label: 'Sampling historical Rocket Pool rates',
-        completed: index,
-        total: sampleBlocks.length,
+        label: 'Loading shared Rocket Pool rates',
+        completed: 1,
+        total: 1,
       })
-      const batch = sampleBlocks.slice(index, index + RATE_SAMPLE_BATCH_SIZE)
-      const points = await Promise.all(
-        batch.map(async (blockNumber) => {
-          const [rate, block] = await Promise.all([
-            rpc.readContract({
-              address: RETH_ADDRESS,
-              abi: RETH_ABI,
-              functionName: 'getExchangeRate',
-              blockNumber,
-            }),
-            rpc.getBlock({ blockNumber }),
-          ])
-          return {
-            blockNumber,
-            timestamp: Number(block.timestamp),
-            rate,
-          } satisfies RatePoint
-        }),
-      )
-      fresh.push(...points)
-      if (index + RATE_SAMPLE_BATCH_SIZE < sampleBlocks.length) {
-        await new Promise((resolve) => window.setTimeout(resolve, 200))
-      }
     }
 
-    const deduped = new Map<string, RatePoint>()
-    for (const point of [...existing, ...fresh]) {
-      deduped.set(point.blockNumber.toString(), point)
-    }
-    const merged = [...deduped.values()].sort((a, b) => a.timestamp - b.timestamp)
+    const existingBlocks = new Set(existing.map((point) => point.blockNumber.toString()))
+    const sampleBlocks = (
+      usedSharedFeed
+        ? buildTransferFillBlocks(latestBlock, transferBlocks)
+        : buildRateSampleBlocks(latestBlock, transferBlocks)
+    ).filter((block) => !existingBlocks.has(block.toString()))
+
+    const fresh = sampleBlocks.length > 0
+      ? await sampleRatesAtBlocks(
+        sampleBlocks,
+        onProgress,
+        usedSharedFeed
+          ? 'Filling rates at your transfers'
+          : 'Sampling historical Rocket Pool rates',
+        signal,
+      )
+      : []
+
+    const merged = mergeRatePoints([...existing, ...fresh])
     await writeRateCache(latestBlock, merged)
     onProgress({
       phase: 'rates',

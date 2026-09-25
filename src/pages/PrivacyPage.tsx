@@ -51,10 +51,12 @@ export function PrivacyPage() {
         <p>
           RocketYield speichert Wallet-Adressen nicht in der eigenen Analytics-Datenbank. Die
           aufgerufene Adresse verbleibt jedoch in der URL und kann dadurch in Ihrem Browserverlauf,
-          in Lesezeichen oder beim Teilen der URL sichtbar sein. Blockchain- und Kursdaten werden
-          zur Beschleunigung lokal im IndexedDB-Speicher Ihres Browsers zwischengespeichert. Die
-          ausgewählte Fiatwährung wird im Local Storage gespeichert, damit sie bei späteren
-          Besuchen wiederhergestellt werden kann.
+          in Lesezeichen oder beim Teilen der URL sichtbar sein. Die gemeinsame historische
+          rETH-Wechselkursreihe wird über den öffentlichen Endpunkt `/api/rates` aus einem
+          Cloudflare-KV-Cache geladen; dort sind keine Wallet-Adressen enthalten. Blockchain- und
+          Kursdaten werden zur Beschleunigung lokal im IndexedDB-Speicher Ihres Browsers
+          zwischengespeichert. Die ausgewählte Fiatwährung wird im Local Storage gespeichert, damit
+          sie bei späteren Besuchen wiederhergestellt werden kann.
           Informationen zu Alchemy finden Sie in der{' '}
           <a href="https://www.alchemy.com/policies/privacy-policy" target="_blank" rel="noreferrer">
             Alchemy Privacy Policy
@@ -130,10 +132,12 @@ export function PrivacyPage() {
           The controller is Nova Heidt at the address above. Cloudflare processes technical request
           data to host and protect the site. When you ask RocketYield to read a wallet or ENS name,
           your browser sends that query to Alchemy; the address also remains in your URL and may be
-          stored in your own browser history. Your selected fiat currency is saved in localStorage
-          so it can be restored on later visits. CoinGecko, GeckoTerminal, and DefiLlama receive
-          ordinary browser request metadata when current or historical prices are loaded.
-          Historical daily ETH/USD prices are cached in your browser’s IndexedDB storage.
+          stored in your own browser history. The shared historical rETH exchange-rate series is
+          loaded from the public `/api/rates` endpoint (Cloudflare KV) and contains no wallet
+          addresses. Your selected fiat currency is saved in localStorage so it can be restored on
+          later visits. CoinGecko, GeckoTerminal, and DefiLlama receive ordinary browser request
+          metadata when current or historical prices are loaded. Historical daily ETH/USD prices are
+          cached in your browser’s IndexedDB storage.
         </p>
         <p>
           Cloudflare Web Analytics measures aggregate page views, visits, referral information,

@@ -20,7 +20,7 @@ Set `VITE_ETHEREUM_RPC_URL` in `.env.local`. The example uses an Alchemy URL pla
 
 - Current balance and redemption rate come from the mainnet rETH contract.
 - On Alchemy, the app pages through `alchemy_getAssetTransfers`; other providers use filtered rETH `Transfer` logs. Both paths reconstruct the balance held at each point in time without Alchemy Free Tier’s 10-block log-range limit.
-- Historical archive calls sample `getExchangeRate()` at every transfer block, daily for the recent chart, and monthly for older chart history. Requests are throttled for free-tier limits. The current balances contract is resolved through RocketStorage for the exact latest protocol-update time.
+- The shared rETH/ETH rate timeline (monthly older points, daily for the latest ~90 days) is served from Cloudflare KV via `GET /api/rates`, refreshed lazily from an archive RPC. The browser only fills rates at that wallet’s transfer blocks (and falls back to full client sampling when the API is unavailable, e.g. plain `npm run dev`).
 - Earnings are calculated as the sum of each held balance multiplied by the next realized rate change. Buying more rETH does not inflate earlier earnings, and selling does not remove earnings already realized.
 - CoinGecko supplies ETH prices in USD, EUR, AUD, CAD, CNY, GBP, JPY, and KRW. The selected fiat currency is remembered in localStorage. GeckoTerminal supplies the optional Curve rETH/WETH spot quote. Either provider may fail without blocking on-chain ETH figures.
 - IndexedDB caches completed block ranges locally. Refreshes request only newer blocks.
@@ -49,7 +49,34 @@ npm run preview
 
 ## Static deployment
 
-Build with `npm run build` and publish `dist/` to any static host. Configure `VITE_ETHEREUM_RPC_URL` at build time. The core rETH dashboard remains static; the optional public statistics described below require Cloudflare Pages Functions and Web Analytics.
+Build with `npm run build` and publish `dist/` to any static host. Configure `VITE_ETHEREUM_RPC_URL` at build time. The core UI can run as a static site with client-side history reads; shared rate caching and public statistics require Cloudflare Pages Functions.
+
+## Shared Rocket Pool rate history
+
+`GET /api/rates` returns the shared exchange-rate timeline from Cloudflare KV. When the cache is empty or older than about six hours (or more than ~one day of blocks behind tip), the Function refreshes it from Ethereum using a server-only `ETHEREUM_RPC_URL` secret. The first cold refresh after deploy can take a moment; later visitors reuse the cache.
+
+### Wire up KV and the RPC secret
+
+1. Create KV namespaces and put their IDs into `wrangler.jsonc`:
+
+```bash
+npx wrangler kv namespace create RATE_HISTORY
+npx wrangler kv namespace create RATE_HISTORY --preview
+```
+
+2. Add the archive RPC URL as a Pages secret (and in `.dev.vars` for local Pages):
+
+```bash
+npx wrangler pages secret put ETHEREUM_RPC_URL --project-name rocketyield
+```
+
+3. Copy `.dev.vars.example` to `.dev.vars`, set `ETHEREUM_RPC_URL`, then run:
+
+```bash
+npm run cf:dev
+```
+
+Open `http://localhost:8788` and load a wallet. Regular `npm run dev` still works: when `/api/rates` is absent the browser falls back to sampling the shared grid itself.
 
 ## Free public statistics on Cloudflare
 
@@ -57,8 +84,8 @@ The `/stats` page uses a Cloudflare Pages Function to read aggregate Web Analyti
 
 ### Test locally
 
-1. Complete the Cloudflare setup below.
-2. Copy `.dev.vars.example` to `.dev.vars` and add the read-only API token.
+1. Complete the Cloudflare setup below (and the rate-history KV setup above if you want `/api/rates`).
+2. Copy `.dev.vars.example` to `.dev.vars` and add the read-only API token plus `ETHEREUM_RPC_URL`.
 3. Put the Cloudflare account ID and Web Analytics site tag in `wrangler.jsonc`.
 4. Start Pages:
 
@@ -66,7 +93,7 @@ The `/stats` page uses a Cloudflare Pages Function to read aggregate Web Analyti
 npm run cf:dev
 ```
 
-Open `http://localhost:8788/stats`. Regular `npm run dev` still runs the frontend, but its server-side stats endpoint is absent.
+Open `http://localhost:8788/stats`. Regular `npm run dev` still runs the frontend, but its server-side stats and rates endpoints are absent.
 
 ### Deploy on the free tier
 
@@ -86,18 +113,21 @@ npx wrangler pages deploy dist --project-name rocketyield
 
 3. In Cloudflare, open the Pages project and enable Web Analytics. Copy its site tag.
 4. Create a dedicated API token with only `Account Analytics: Read`.
-5. Copy the account ID and site tag into `wrangler.jsonc`, then add the token as a secret:
+5. Copy the account ID and site tag into `wrangler.jsonc`, then add secrets:
 
 ```bash
 npx wrangler pages secret put CLOUDFLARE_ANALYTICS_TOKEN --project-name rocketyield
+npx wrangler pages secret put ETHEREUM_RPC_URL --project-name rocketyield
 npm run build
 npx wrangler pages deploy dist --project-name rocketyield
 ```
 
-The token never reaches the browser. The public API returns only totals and daily aggregates. Web Analytics does not use cookies, localStorage, browser IDs, or fingerprinting. Visits are still approximate and can include bots; Cloudflare may sample higher-volume data.
+Also set the `RATE_HISTORY` KV namespace IDs in `wrangler.jsonc` (see Shared Rocket Pool rate history above).
+
+The analytics token never reaches the browser. The public API returns only totals and daily aggregates. Web Analytics does not use cookies, localStorage, browser IDs, or fingerprinting. Visits are still approximate and can include bots; Cloudflare may sample higher-volume data.
 
 ## Limits
 
-First load for an old, active wallet can require several historical contract reads. RocketYield throttles and caches them, but an endpoint may still rate-limit or reject archive access. The UI reports those failures without substituting sample values.
+First load for an old, active wallet still needs that address’s transfer history. Shared rate points come from `/api/rates` when Cloudflare Functions are configured; otherwise the browser samples the grid itself. An endpoint may still rate-limit or reject archive access. The UI reports those failures without substituting sample values.
 
 Unofficial community tool. Not affiliated with Rocket Pool.

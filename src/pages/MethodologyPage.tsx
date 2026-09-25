@@ -30,8 +30,11 @@ export function MethodologyPage() {
         <div className="formula">Earnings = Σ(balance held during interval × rate change)</div>
         <p>
           Today, 7-day, 30-day, and 90-day figures use the same timeline clipped to each time
-          window. Historical rate calls are made at every transfer block, daily for the latest
-          90 days, and monthly for older chart history.
+          window. The shared exchange-rate grid (daily for the latest ~90 days, monthly for older
+          chart history) is loaded from RocketYield’s Cloudflare-backed `/api/rates` cache when
+          available; the browser then fills rates at every transfer block for the viewed address.
+          Without that API (for example under plain local Vite), the browser samples the full grid
+          itself.
         </p>
         <p>
           The daily earnings table splits that sampled timeline at the calendar-day boundaries in
@@ -66,6 +69,10 @@ export function MethodologyPage() {
         <h2>Data sources</h2>
         <ul>
           <li>Ethereum mainnet rETH contract for current balance and exchange rate.</li>
+          <li>
+            RocketYield’s shared `/api/rates` cache (Cloudflare KV, refreshed from an archive RPC)
+            for the common historical exchange-rate grid.
+          </li>
           <li>Alchemy RPC and transfer-history API for live and historical Ethereum reads.</li>
           <li>CoinGecko for ETH prices in the dashboard’s supported fiat currencies.</li>
           <li>

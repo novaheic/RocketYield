@@ -1,1 +1,2 @@
 CLOUDFLARE_ANALYTICS_TOKEN=replace-with-an-account-analytics-read-token
+ETHEREUM_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY

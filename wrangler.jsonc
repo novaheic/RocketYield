@@ -6,5 +6,12 @@
   "vars": {
     "CLOUDFLARE_ACCOUNT_ID": "REPLACE_WITH_YOUR_ACCOUNT_ID",
     "WEB_ANALYTICS_SITE_TAG": "REPLACE_WITH_YOUR_WEB_ANALYTICS_SITE_TAG"
-  }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "RATE_HISTORY",
+      "id": "REPLACE_WITH_RATE_HISTORY_KV_NAMESPACE_ID",
+      "preview_id": "REPLACE_WITH_RATE_HISTORY_KV_PREVIEW_ID"
+    }
+  ]
 }
