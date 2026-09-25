@@ -1,4 +1,4 @@
-import { Download } from 'lucide-react'
+import { CalendarDays, Download } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { buildDailyEarningsLedger } from '../lib/analytics/dailyEarnings'
 import { downloadEarnings } from '../lib/earningsExport'
@@ -130,7 +130,7 @@ export function DailyEarningsTable({
     <section className="earnings-history" aria-labelledby="earnings-history-title">
       <header className="panel-header earnings-history-heading">
         <div>
-          <span className="section-index">04</span>
+          <CalendarDays className="section-icon" size={18} aria-hidden="true" />
           <h2 id="earnings-history-title">Daily earnings history</h2>
         </div>
         <p>Completed local calendar days · historical {priceHistoryLabel} value · newest first</p>

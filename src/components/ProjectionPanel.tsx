@@ -1,3 +1,4 @@
+import { TrendingUp } from 'lucide-react'
 import { formatEth, formatFiat } from '../lib/format'
 import type { DashboardData, FiatCurrency } from '../lib/types'
 
@@ -18,7 +19,7 @@ export function ProjectionPanel({ data, fiatCurrency }: ProjectionPanelProps) {
     <section className="panel projection-panel">
       <header className="panel-header">
         <div>
-          <span className="section-index">01</span>
+          <TrendingUp className="section-icon" size={18} aria-hidden="true" />
           <h2>Forward estimate</h2>
         </div>
         <p>Current 7-day rate vs. your realized 30-day pace</p>

@@ -7,6 +7,7 @@ import {
   type SeriesMarker,
   type UTCTimestamp,
 } from 'lightweight-charts'
+import { History } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import type { DashboardData } from '../lib/types'
 
@@ -121,7 +122,7 @@ export function AnalyticsCharts({ data }: ChartProps) {
     <section className="charts-section">
       <header className="panel-header charts-heading">
         <div>
-          <span className="section-index">02</span>
+          <History className="section-icon" size={18} aria-hidden="true" />
           <h2>Position history</h2>
         </div>
         <p>Protocol rate, realized daily earnings, and transfer-aware ETH value</p>

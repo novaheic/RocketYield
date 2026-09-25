@@ -1,4 +1,4 @@
-import { ArrowUpRight, Gauge } from 'lucide-react'
+import { Activity, ArrowUpRight, Gauge } from 'lucide-react'
 import { formatDate, formatPercent, formatSignedPercent } from '../lib/format'
 import type { DashboardData } from '../lib/types'
 
@@ -45,7 +45,7 @@ export function MarketMilestone({ data }: { data: DashboardData }) {
 
       <article className="panel rate-panel">
         <header className="compact-header">
-          <span className="section-index">03</span>
+          <Activity className="section-icon" size={18} aria-hidden="true" />
           <h2>Rate windows</h2>
         </header>
         <div className="rate-grid">
