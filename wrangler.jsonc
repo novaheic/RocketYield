@@ -4,7 +4,7 @@
 	"pages_build_output_dir": "./dist",
 	"compatibility_date": "2026-09-21",
 	"vars": {
-		"CLOUDFLARE_ACCOUNT_ID": "REPLACE_WITH_YOUR_ACCOUNT_ID",
+		"CLOUDFLARE_ACCOUNT_ID": "7a3c4fe30d6a81c02711d796e085813d",
 		"WEB_ANALYTICS_SITE_TAG": "REPLACE_WITH_YOUR_WEB_ANALYTICS_SITE_TAG"
 	},
 	"kv_namespaces": [

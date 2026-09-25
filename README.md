@@ -95,34 +95,42 @@ npm run cf:dev
 
 Open `http://localhost:8788/stats`. Regular `npm run dev` still runs the frontend, but its server-side stats and rates endpoints are absent.
 
-### Deploy on the free tier
+### Deploy on the free tier (GitHub Actions)
 
-1. Create a free Cloudflare account, then sign in from the project:
+Prefer this over Cloudflare’s built-in “Connect to Git” Builds UI. Actions runs `npm run build` and `wrangler pages deploy` on every push to `main` (see [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)).
+
+1. Create a free Cloudflare account, then sign in locally:
 
 ```bash
 npx wrangler login
 ```
 
-2. Create the Pages project and deploy once:
+2. Create a **Pages** project **without** connecting Git (or disconnect Git if you already connected it — leave Builds unused):
 
 ```bash
 npx wrangler pages project create rocketyield
-npm run build
-npx wrangler pages deploy dist --project-name rocketyield
 ```
 
-3. In Cloudflare, open the Pages project and enable Web Analytics. Copy its site tag.
-4. Create a dedicated API token with only `Account Analytics: Read`.
-5. Copy the account ID and site tag into `wrangler.jsonc`, then add secrets:
+3. Create a Cloudflare API token with **Account → Cloudflare Pages → Edit**. Note your Account ID from the dashboard overview.
+
+4. In the GitHub repo → **Settings → Secrets and variables → Actions**, add:
+
+| Secret | Value |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | Pages Edit token from step 3 |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
+| `VITE_ETHEREUM_RPC_URL` | Archive RPC URL (baked into the browser build) |
+
+5. Push to `main` (or run the **Deploy Cloudflare Pages** workflow manually). Check the Actions tab for the deploy URL.
+
+6. Enable Web Analytics on the Pages project; copy the site tag. Create a second API token with only **Account Analytics: Read**. Put the account ID and site tag in `wrangler.jsonc`, set KV IDs (see above), commit, then add Function secrets:
 
 ```bash
 npx wrangler pages secret put CLOUDFLARE_ANALYTICS_TOKEN --project-name rocketyield
 npx wrangler pages secret put ETHEREUM_RPC_URL --project-name rocketyield
-npm run build
-npx wrangler pages deploy dist --project-name rocketyield
 ```
 
-Also set the `RATE_HISTORY` KV namespace IDs in `wrangler.jsonc` (see Shared Rocket Pool rate history above).
+The next push redeploys with updated `wrangler.jsonc` bindings.
 
 The analytics token never reaches the browser. The public API returns only totals and daily aggregates. Web Analytics does not use cookies, localStorage, browser IDs, or fingerprinting. Visits are still approximate and can include bots; Cloudflare may sample higher-volume data.
 
