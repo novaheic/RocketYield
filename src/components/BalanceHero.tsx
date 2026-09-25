@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useFitText } from '../hooks/useFitText'
 import {
   formatFiatValue,
   liveEthFractionDigits,
@@ -33,6 +34,7 @@ export function BalanceHero({
   fiatCurrency,
   onFiatCurrencyChange,
 }: BalanceHeroProps) {
+  const ethFitRef = useRef<HTMLDivElement>(null)
   const ethRef = useRef<HTMLElement>(null)
   const visitEthRef = useRef<HTMLElement>(null)
   const visitFiatRef = useRef<HTMLElement>(null)
@@ -42,6 +44,8 @@ export function BalanceHero({
 
   fiatCurrencyRef.current = fiatCurrency
   ethRateRef.current = data.market.ethFiat[fiatCurrency]
+
+  useFitText(ethFitRef, ethRef, { minScale: 0.28 })
 
   useEffect(() => {
     visitStartedAt.current = performance.now()
@@ -116,7 +120,9 @@ export function BalanceHero({
       <div className="balance-stage">
         <div className="balance-line">
           <span>ETH</span>
-          <strong ref={ethRef} />
+          <div className="balance-value-fit" ref={ethFitRef}>
+            <strong ref={ethRef} className="fit-number" />
+          </div>
         </div>
 
         <div className="opening-delta">

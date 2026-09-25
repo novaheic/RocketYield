@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { estimateTodayEarnings } from '../lib/analytics/dailyEarnings'
+import { useFitText } from '../hooks/useFitText'
 import {
   formatEth,
   formatFiat,
@@ -7,6 +8,18 @@ import {
   formatPercent,
 } from '../lib/format'
 import type { DashboardData, FiatCurrency } from '../lib/types'
+
+function MetricValue({ children }: { children: ReactNode }) {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const valueRef = useRef<HTMLElement>(null)
+  useFitText(wrapRef, valueRef, { minScale: 0.55 })
+
+  return (
+    <div className="metric-value-fit" ref={wrapRef}>
+      <strong ref={valueRef} className="fit-number">{children}</strong>
+    </div>
+  )
+}
 
 interface MetricBandProps {
   data: DashboardData
@@ -89,10 +102,10 @@ export function MetricBand({ data, fiatCurrency }: MetricBandProps) {
     <section className="metric-band" aria-label="Earnings windows">
       <div className="metric-cell">
         <span>Today</span>
-        <strong>
+        <MetricValue>
           +<span ref={todayEthRef}>{displayEth(todayEstimate.ethAt)}</span>{' '}
           <small>ETH</small>
-        </strong>
+        </MetricValue>
         <small ref={todayFiatRef}>
           {initialFiat === null
             ? `${fiatCurrency} unavailable`
@@ -104,13 +117,17 @@ export function MetricBand({ data, fiatCurrency }: MetricBandProps) {
       {items.map(([label, value]) => (
         <div className="metric-cell" key={label}>
           <span>{label}</span>
-          <strong>+{formatEth(value)} <small>ETH</small></strong>
+          <MetricValue>
+            +{formatEth(value)} <small>ETH</small>
+          </MetricValue>
           <small>{formatFiat(value, data.market.ethFiat[fiatCurrency], fiatCurrency)}</small>
         </div>
       ))}
       <div className="metric-cell yield-cell">
         <span>Current yield</span>
-        <strong>{formatPercent(yields.apr30d)} <small>APR</small></strong>
+        <MetricValue>
+          {formatPercent(yields.apr30d)} <small>APR</small>
+        </MetricValue>
         <small>{formatPercent(yields.apy30d)} APY · trailing 30d</small>
       </div>
     </section>
