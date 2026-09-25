@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Database, Radio } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Database, Github, Radio } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { AddressRail } from './components/AddressRail'
 import { AnalyticsCharts } from './components/AnalyticsCharts'
@@ -43,11 +43,11 @@ function Welcome({ onSubmit }: { onSubmit: (value: string) => void }) {
   return (
     <section className="welcome">
       <div className="welcome-copy">
-        <span className="eyebrow">READ-ONLY RETH MONITOR</span>
-        <h1>See what your rETH is worth—and what it has actually earned.</h1>
+        <span className="brand-mark welcome-mark" aria-hidden="true">R</span>
+        <h1>Watch your rETH generate yield — live.</h1>
         <p>
-          RocketYield rebuilds your balance from Ethereum transfers, applies each Rocket Pool rate
-          update, and keeps the answer open on one quiet screen.
+          Enter a wallet or ENS name to see your rETH’s live ETH value, what it has earned, and how
+          the yield is compounding—read straight from Ethereum, no wallet connection required.
         </p>
       </div>
       <form className="welcome-form" onSubmit={submit}>
@@ -78,8 +78,19 @@ function Welcome({ onSubmit }: { onSubmit: (value: string) => void }) {
         <div>
           <Radio size={18} />
           <span>
-            <strong>Direct from Ethereum</strong>
+            <strong>Read from Ethereum</strong>
             Current holdings and Rocket Pool rates come from mainnet.
+          </span>
+        </div>
+        <div>
+          <Github size={18} />
+          <span>
+            <strong>Free and open source</strong>
+            Built in the open on{' '}
+            <a href="https://github.com/novaheic/RocketYield" target="_blank" rel="noreferrer">
+              GitHub
+            </a>
+            .
           </span>
         </div>
       </div>
@@ -177,13 +188,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <AddressRail
-        query={query}
-        data={data}
-        progress={progress}
-        onSubmit={navigate}
-        onRefresh={refresh}
-      />
+      <AddressRail query={query} progress={progress} onSubmit={navigate} />
       <main className="main-stage">
           {!query && <Welcome onSubmit={navigate} />}
           {query && !data && !error && (

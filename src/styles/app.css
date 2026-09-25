@@ -36,6 +36,12 @@
   font-weight: 600;
 }
 
+.welcome-mark {
+  width: 96px;
+  height: 96px;
+  font-size: 64px;
+}
+
 .brand strong,
 .brand small {
   display: block;
@@ -50,8 +56,8 @@
   margin-top: 2px;
   color: var(--text-muted);
   font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .address-form {
@@ -125,6 +131,10 @@
   background: var(--neutral-500);
 }
 
+.status-idle {
+  background: var(--negative);
+}
+
 .status-ready {
   background: var(--positive);
 }
@@ -138,76 +148,15 @@
 .status-transfers,
 .status-rates,
 .status-calculating {
-  background: var(--primary);
+  background: var(--warning);
 }
 
-.identity {
-  min-width: 0;
-  margin-top: var(--space-8);
-  padding-top: var(--space-6);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.identity > span,
-.identity > small {
-  display: block;
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
-.identity > strong {
-  display: block;
-  max-width: 100%;
-  margin: var(--space-2) 0;
-  overflow-wrap: anywhere;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.identity-actions {
-  display: flex;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-}
-
-.identity-actions button,
-.identity-actions a {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--text-secondary);
-  font-size: 11px;
-  text-decoration: none;
-}
-
-.identity-actions button:hover,
-.identity-actions a:hover {
-  color: var(--text-primary);
-}
-
-.rail-note {
-  margin-top: auto;
-  padding-top: var(--space-6);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.rail-note span,
 .eyebrow,
 .state-index {
   color: var(--primary);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.14em;
-}
-
-.rail-note p {
-  margin: var(--space-2) 0 0;
-  color: var(--text-muted);
-  font-size: 11px;
-  line-height: 1.55;
 }
 
 .main-stage {
@@ -229,13 +178,20 @@
 
 .welcome-copy h1,
 .state-view h1 {
-  max-width: 850px;
   margin: var(--space-6) 0;
   font-family: var(--font-display);
   font-size: clamp(52px, 7vw, 96px);
   font-weight: 500;
   letter-spacing: -0.025em;
   line-height: 0.93;
+}
+
+.welcome-copy h1 {
+  max-width: 11.5ch;
+}
+
+.state-view h1 {
+  max-width: 850px;
 }
 
 .welcome-copy p {
@@ -297,7 +253,7 @@
 .welcome-method {
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-8);
   align-self: end;
   padding-top: var(--space-8);
@@ -322,6 +278,16 @@
   margin-bottom: 3px;
   color: var(--text-primary);
   font-size: 12px;
+}
+
+.welcome-method a {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.welcome-method a:hover {
+  color: var(--text-primary);
 }
 
 .state-view {
@@ -1152,18 +1118,13 @@ footer a:hover {
     margin-top: 0;
   }
 
-  .address-form label,
-  .rail-note {
+  .address-form label {
     display: none;
   }
 
   .rail-status {
     grid-column: 1 / -1;
     margin-top: 0;
-  }
-
-  .identity {
-    display: none;
   }
 
   .main-stage {

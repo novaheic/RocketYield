@@ -84,7 +84,7 @@ describe('App live-data states', () => {
   it('shows the specific address entry proposition', () => {
     render(<App />)
     expect(
-      screen.getByRole('heading', { name: /see what your reth is worth/i }),
+      screen.getByRole('heading', { name: /watch your reth generate yield/i }),
     ).toBeInTheDocument()
     expect(screen.getByText(/no wallet connection, signature, or account/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Methodology' })).toHaveAttribute('href', '/methodology')

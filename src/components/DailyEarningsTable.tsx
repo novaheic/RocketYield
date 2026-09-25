@@ -124,7 +124,6 @@ export function DailyEarningsTable({
   const safePage = Math.min(page, pageCount)
   const pageRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
   const missingPriceLabel = priceState === 'loading' ? 'Loading…' : '—'
-  const priceHistoryLabel = fiatCurrency === 'USD' ? 'USD' : `${fiatCurrency} (from USD)`
 
   return (
     <section className="earnings-history" aria-labelledby="earnings-history-title">
@@ -133,7 +132,6 @@ export function DailyEarningsTable({
           <CalendarDays className="section-icon" size={18} aria-hidden="true" />
           <h2 id="earnings-history-title">Daily earnings history</h2>
         </div>
-        <p>Completed local calendar days · historical {priceHistoryLabel} value · newest first</p>
       </header>
 
       <div className="earnings-history-toolbar">
@@ -237,12 +235,9 @@ export function DailyEarningsTable({
       )}
 
       <p className="panel-footnote earnings-history-note">
-        Completed daily values are estimates allocated from sampled on-chain rETH rates. Older
-        periods use wider samples; totals remain balance-weighted across buys, sells, and transfers.
-        Fiat values use DefiLlama’s nearest daily ETH/USD price
-        {fiatCurrency === 'USD'
-          ? '.'
-          : `, converted to ${fiatCurrency} with the live ETH spot FX from CoinGecko.`}
+        RocketYield is a free, open-source tool provided for informational purposes. See{' '}
+        <a href="/methodology">methodology</a> for how values are estimated and derived. Provided
+        as is, with no guarantee of accuracy.
       </p>
     </section>
   )
