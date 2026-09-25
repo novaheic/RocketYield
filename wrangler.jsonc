@@ -5,7 +5,7 @@
 	"compatibility_date": "2026-09-21",
 	"vars": {
 		"CLOUDFLARE_ACCOUNT_ID": "7a3c4fe30d6a81c02711d796e085813d",
-		"WEB_ANALYTICS_SITE_TAG": "REPLACE_WITH_YOUR_WEB_ANALYTICS_SITE_TAG"
+		"WEB_ANALYTICS_SITE_TAG": "159bcf95973e4867976e72c1ccdfbf58"
 	},
 	"kv_namespaces": [
 		{
