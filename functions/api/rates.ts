@@ -22,7 +22,8 @@ export const onRequest: PagesFunction<RatesEnv> = async ({ request, env }) => {
           : 'public, max-age=300, s-maxage=300',
       },
     })
-  } catch {
+  } catch (error) {
+    console.error('rates failed', error)
     return new Response(JSON.stringify({ error: 'Shared Rocket Pool rate history is temporarily unavailable.' }), {
       status: 503,
       headers: {

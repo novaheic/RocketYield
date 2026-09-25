@@ -24,6 +24,8 @@ export const RATE_KV_KEY = `shared-rates-v${RATE_CACHE_VERSION}`
 export const STALE_AFTER_MS = 6 * 60 * 60 * 1000
 export const STALE_AFTER_BLOCKS = 7_200n
 export const RATE_SAMPLE_BATCH_SIZE = 8
+/** Stay under the Workers free-tier subrequest limit (each sample uses 2 RPC calls). */
+export const MAX_RATE_SAMPLES_PER_INVOKE = 20
 
 const RETH_DEPLOYMENT_BLOCK = 13_325_322n
 const RETH_ADDRESS = '0xae78736Cd615f374D3085123A210448E74Fc6393'
@@ -62,6 +64,7 @@ export function isRateCacheStale(
   now = Date.now(),
 ): boolean {
   if (!cache || cache.version !== RATE_CACHE_VERSION || cache.items.length === 0) return true
+  if (cache.stale) return true
   const updatedAt = Date.parse(cache.updatedAt)
   if (!Number.isFinite(updatedAt) || now - updatedAt > STALE_AFTER_MS) return true
   try {
@@ -211,16 +214,20 @@ export async function refreshSharedRates(
   const existingBlocks = new Set(existing.items.map((point) => point.blockNumber))
   const missing = buildSharedSampleBlocks(latestBlock)
     .filter((block) => !existingBlocks.has(block.toString()))
+  const batch = missing.slice(0, MAX_RATE_SAMPLES_PER_INVOKE)
 
-  const fresh = missing.length > 0
-    ? await sampleMissingRates(rpcUrl, missing, request)
+  const fresh = batch.length > 0
+    ? await sampleMissingRates(rpcUrl, batch, request)
     : []
 
+  const items = mergeRateItems(existing.items, fresh)
+  const stillMissing = missing.length > batch.length
   const merged: SharedRateCache = {
     version: RATE_CACHE_VERSION,
     throughBlock: latestBlock.toString(),
     updatedAt: now.toISOString(),
-    items: mergeRateItems(existing.items, fresh),
+    items,
+    ...(stillMissing ? { stale: true } : {}),
   }
 
   await env.RATE_HISTORY.put(RATE_KV_KEY, JSON.stringify(merged))

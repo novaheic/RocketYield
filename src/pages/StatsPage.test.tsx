@@ -16,7 +16,7 @@ const stats: PublicStats = {
     viewsPerVisit: 8,
     visitsThirtyDays: 5_432_100,
     pageViewsThirtyDays: 4_321_000,
-    periodDays: 180,
+    periodDays: 91,
   },
   daily,
   updatedAt: '2026-09-21T12:00:00.000Z',

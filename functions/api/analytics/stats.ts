@@ -19,7 +19,8 @@ export const onRequest: PagesFunction<AnalyticsEnv> = async ({ request, env }) =
         'Cache-Control': 'public, max-age=60, s-maxage=60',
       },
     })
-  } catch {
+  } catch (error) {
+    console.error('stats failed', error)
     return new Response(JSON.stringify({ error: 'Public statistics are temporarily unavailable.' }), {
       status: 500,
       headers: {

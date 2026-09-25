@@ -59,6 +59,7 @@ describe('analytics aggregation helpers', () => {
       visits: 8,
       pageViews: 12,
       viewsPerVisit: 1.5,
+      periodDays: 91,
     })
     expect(request).toHaveBeenCalledWith(
       'https://api.cloudflare.com/client/v4/graphql',

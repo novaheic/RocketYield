@@ -84,7 +84,8 @@ export async function readPublicStats(
   request: typeof fetch = fetch,
 ): Promise<PublicStats> {
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-  start.setUTCDate(start.getUTCDate() - 179)
+  // Free Cloudflare analytics accounts reject windows wider than ~13 weeks.
+  start.setUTCDate(start.getUTCDate() - 90)
 
   const response = await request('https://api.cloudflare.com/client/v4/graphql', {
     method: 'POST',
@@ -124,7 +125,7 @@ export async function readPublicStats(
       viewsPerVisit: visits ? pageViews / visits : 0,
       visitsThirtyDays,
       pageViewsThirtyDays,
-      periodDays: 180,
+      periodDays: 91,
     },
     daily,
     updatedAt: now.toISOString(),

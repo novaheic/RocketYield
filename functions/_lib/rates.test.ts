@@ -61,6 +61,8 @@ describe('shared rate cache helpers', () => {
 
     const behind = cache({ throughBlock: '20000000' })
     expect(isRateCacheStale(behind, 20_000_000n + STALE_AFTER_BLOCKS + 1n)).toBe(true)
+
+    expect(isRateCacheStale(cache({ stale: true }), 20_000_000n)).toBe(true)
   })
 
   it('serves a fresh KV cache without refreshing', async () => {
