@@ -95,4 +95,14 @@ describe('DailyEarningsTable', () => {
     expect(screen.getByRole('columnheader', { name: 'Value (JPY)' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'ETH Price (JPY)' })).toBeInTheDocument()
   })
+
+  it('shows a first-day empty state when there are no earning days', () => {
+    mockedBuilder.mockReturnValue([])
+    render(<DailyEarningsTable data={data} fiatCurrency="USD" />)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Waiting on the first earning day')
+    expect(screen.getByText(/accrues yield overnight/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'CSV' })).toBeDisabled()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  })
 })

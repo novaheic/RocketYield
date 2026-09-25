@@ -161,8 +161,40 @@ export function DailyEarningsTable({
       </div>
 
       {rows.length === 0 ? (
-        <div className="earnings-history-empty">
-          No positive daily rETH earnings were found for this address.
+        <div className="earnings-history-empty panel-empty" role="status">
+          <div className="panel-empty-copy">
+            <strong>Waiting on the first earning day</strong>
+            <p>
+              Daily rows appear after rETH accrues yield overnight. Today's estimate still ticks
+              above.
+            </p>
+          </div>
+          <div className="earnings-empty-ghost" aria-hidden="true">
+            <div className="earnings-empty-headers">
+              <span>Date</span>
+              <span>Change</span>
+              <span>Value</span>
+              <span>Yield</span>
+            </div>
+            <div className="earnings-empty-row">
+              <span className="earnings-empty-stub" />
+              <span className="earnings-empty-stub" />
+              <span className="earnings-empty-stub" />
+              <span className="earnings-empty-stub" />
+            </div>
+            <div className="earnings-empty-row is-today">
+              <span className="earnings-empty-stub is-accent" />
+              <span className="earnings-empty-stub" />
+              <span className="earnings-empty-stub" />
+              <span className="earnings-empty-stub" />
+            </div>
+            <div className="earnings-empty-row">
+              <span className="earnings-empty-stub" />
+              <span className="earnings-empty-stub" />
+              <span className="earnings-empty-stub" />
+              <span className="earnings-empty-stub" />
+            </div>
+          </div>
         </div>
       ) : (
         <>

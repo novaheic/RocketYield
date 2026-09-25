@@ -888,6 +888,89 @@
 
 .chart-canvas-large {
   min-height: 290px;
+  position: relative;
+}
+
+.panel-empty {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  overflow: hidden;
+  animation: panel-empty-in 480ms ease-out both;
+}
+
+.panel-empty-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 340px;
+  padding: 0 var(--space-4);
+  text-align: center;
+}
+
+.panel-empty-copy strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.panel-empty-copy p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.chart-empty {
+  width: 100%;
+  min-height: 290px;
+  justify-content: flex-end;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  box-sizing: border-box;
+}
+
+.chart-empty-silhouette {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 8%;
+  bottom: 36%;
+  width: 84%;
+  height: 56%;
+  opacity: 0.55;
+  pointer-events: none;
+  animation: chart-empty-draw 700ms ease-out both;
+}
+
+.chart-empty-grid {
+  stroke: #1a1c1e;
+  stroke-width: 1;
+}
+
+.chart-empty-baseline {
+  stroke: #282b2e;
+  stroke-width: 1;
+}
+
+.chart-empty-line {
+  stroke: #52575b;
+  stroke-width: 1.75;
+  stroke-dasharray: 5 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-empty-bar {
+  fill: #282b2e;
+}
+
+.chart-empty-bar.is-accent,
+.chart-empty-accent {
+  fill: var(--primary);
+  animation: chart-empty-pulse 2.4s ease-in-out infinite;
 }
 
 .earnings-history {
@@ -1008,12 +1091,104 @@
 }
 
 .earnings-history-empty {
-  padding: var(--space-12) var(--space-6);
+  min-height: 200px;
+  padding: var(--space-8) var(--space-6);
   border: 1px solid var(--border-subtle);
   background: var(--surface-raised);
+  gap: var(--space-6);
+}
+
+.earnings-empty-ghost {
+  position: relative;
+  width: min(100%, 520px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.earnings-empty-headers,
+.earnings-empty-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 0.9fr;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.earnings-empty-headers {
   color: var(--text-muted);
-  font-size: 12px;
-  text-align: center;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.earnings-empty-stub {
+  display: block;
+  height: 8px;
+  border-radius: 2px;
+  background: #282b2e;
+}
+
+.earnings-empty-row.is-today .earnings-empty-stub.is-accent {
+  background: var(--primary);
+  animation: chart-empty-pulse 2.4s ease-in-out infinite;
+}
+
+.earnings-empty-row:nth-child(2) .earnings-empty-stub:nth-child(1) { width: 72%; }
+.earnings-empty-row:nth-child(2) .earnings-empty-stub:nth-child(2) { width: 48%; }
+.earnings-empty-row:nth-child(2) .earnings-empty-stub:nth-child(3) { width: 58%; }
+.earnings-empty-row:nth-child(2) .earnings-empty-stub:nth-child(4) { width: 40%; }
+.earnings-empty-row:nth-child(3) .earnings-empty-stub:nth-child(1) { width: 64%; }
+.earnings-empty-row:nth-child(3) .earnings-empty-stub:nth-child(2) { width: 42%; }
+.earnings-empty-row:nth-child(3) .earnings-empty-stub:nth-child(3) { width: 52%; }
+.earnings-empty-row:nth-child(3) .earnings-empty-stub:nth-child(4) { width: 36%; }
+.earnings-empty-row:nth-child(4) .earnings-empty-stub:nth-child(1) { width: 68%; }
+.earnings-empty-row:nth-child(4) .earnings-empty-stub:nth-child(2) { width: 44%; }
+.earnings-empty-row:nth-child(4) .earnings-empty-stub:nth-child(3) { width: 55%; }
+.earnings-empty-row:nth-child(4) .earnings-empty-stub:nth-child(4) { width: 38%; }
+
+@keyframes panel-empty-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chart-empty-draw {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 0.55;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chart-empty-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-empty,
+  .chart-empty-silhouette,
+  .chart-empty-bar.is-accent,
+  .chart-empty-accent,
+  .earnings-empty-row.is-today .earnings-empty-stub.is-accent {
+    animation: none;
+  }
 }
 
 .earnings-pagination {

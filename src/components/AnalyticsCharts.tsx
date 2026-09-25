@@ -19,6 +19,7 @@ import { buildDailyEarningsLedger, estimateTodayEarnings } from '../lib/analytic
 import type { DashboardData } from '../lib/types'
 
 const DAY = 86_400
+const EMPTY_TODAY_EPSILON = 0.00001
 
 type ChartRange = '7d' | '30d' | '365d' | 'all'
 type ChartMode = 'earnings' | 'value'
@@ -144,6 +145,53 @@ function buildValueMarkers(data: DashboardData): SeriesMarker<UTCTimestamp>[] {
   })
 }
 
+function ChartEmptyState({ mode }: { mode: ChartMode }) {
+  const title = mode === 'value' ? 'No position to chart' : 'No daily earnings yet'
+  const detail = mode === 'value'
+    ? 'This address has no rETH holdings in the scanned history.'
+    : 'Earnings appear once rETH accrues yield while held.'
+
+  return (
+    <div className="chart-empty panel-empty" role="status">
+      <svg
+        className="chart-empty-silhouette"
+        viewBox="0 0 400 200"
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <line x1="24" y1="40" x2="376" y2="40" className="chart-empty-grid" />
+        <line x1="24" y1="90" x2="376" y2="90" className="chart-empty-grid" />
+        <line x1="24" y1="140" x2="376" y2="140" className="chart-empty-grid" />
+        <line x1="24" y1="168" x2="376" y2="168" className="chart-empty-baseline" />
+        {mode === 'value' ? (
+          <>
+            <path
+              className="chart-empty-line"
+              d="M24 150 C70 142 100 148 130 128 S190 96 220 108 S280 70 310 78 S360 48 376 42"
+              fill="none"
+            />
+            <circle className="chart-empty-accent" cx="310" cy="78" r="3.5" />
+          </>
+        ) : (
+          <>
+            <rect className="chart-empty-bar" x="48" y="118" width="28" height="50" rx="2" />
+            <rect className="chart-empty-bar" x="100" y="98" width="28" height="70" rx="2" />
+            <rect className="chart-empty-bar" x="152" y="128" width="28" height="40" rx="2" />
+            <rect className="chart-empty-bar is-accent" x="204" y="72" width="28" height="96" rx="2" />
+            <rect className="chart-empty-bar" x="256" y="108" width="28" height="60" rx="2" />
+            <rect className="chart-empty-bar" x="308" y="88" width="28" height="80" rx="2" />
+          </>
+        )}
+      </svg>
+      <div className="panel-empty-copy">
+        <strong>{title}</strong>
+        <p>{detail}</p>
+      </div>
+    </div>
+  )
+}
+
 interface ChartProps {
   data: DashboardData
 }
@@ -176,8 +224,20 @@ export function AnalyticsCharts({ data }: ChartProps) {
     [data.analytics.smoothedEthPerSecond, data.rates, data.transfers],
   )
 
+  const todayLiveEth = liveTodayEth(
+    todayEstimate.realizedEth,
+    todayEstimate.tickFrom,
+    data.analytics.smoothedEthPerSecond,
+  )
+
+  const isEmpty = mode === 'value'
+    ? !data.analytics.valueSeries.some((point) => point.balanceReth > 0)
+    : !earningsLedger.some((point) => point.earnedEth > 0)
+      && todayLiveEth < EMPTY_TODAY_EPSILON
+
   // Recreate on mode change so UTC timestamps and BusinessDay series never share a chart.
   useEffect(() => {
+    if (isEmpty) return
     const container = containerRef.current
     if (!container) return
 
@@ -200,9 +260,10 @@ export function AnalyticsCharts({ data }: ChartProps) {
       chartRef.current = null
       timesRef.current = []
     }
-  }, [data, mode])
+  }, [data, isEmpty, mode])
 
   useEffect(() => {
+    if (isEmpty) return
     const chart = chartRef.current
     if (!chart) return
 
@@ -258,10 +319,10 @@ export function AnalyticsCharts({ data }: ChartProps) {
     }
 
     applyChartRange(chart, rangeRef.current, timesRef.current)
-  }, [data, earningsLedger, mode, todayEstimate])
+  }, [data, earningsLedger, isEmpty, mode, todayEstimate])
 
   useEffect(() => {
-    if (mode !== 'earnings') return
+    if (isEmpty || mode !== 'earnings') return
 
     const todayTime = toBusinessDay(todayDateKey())
     let frame = 0
@@ -289,13 +350,14 @@ export function AnalyticsCharts({ data }: ChartProps) {
 
     frame = window.requestAnimationFrame(paint)
     return () => window.cancelAnimationFrame(frame)
-  }, [data.analytics.smoothedEthPerSecond, mode, todayEstimate])
+  }, [data.analytics.smoothedEthPerSecond, isEmpty, mode, todayEstimate])
 
   useEffect(() => {
+    if (isEmpty) return
     const chart = chartRef.current
     if (!chart || !seriesRef.current) return
     applyChartRange(chart, range, timesRef.current)
-  }, [range])
+  }, [isEmpty, range])
 
   const title = mode === 'value' ? 'Position value' : 'Daily earnings'
   const subtitle = mode === 'value'
@@ -362,7 +424,13 @@ export function AnalyticsCharts({ data }: ChartProps) {
               </div>
             </div>
           </div>
-          <div className="chart-canvas chart-canvas-large" ref={containerRef} />
+          {isEmpty ? (
+            <div className="chart-canvas chart-canvas-large">
+              <ChartEmptyState mode={mode} />
+            </div>
+          ) : (
+            <div className="chart-canvas chart-canvas-large" ref={containerRef} />
+          )}
         </article>
       </div>
     </section>
