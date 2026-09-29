@@ -1,7 +1,7 @@
 import { FIAT_CURRENCIES, type FiatCurrency, type MarketData } from './types'
 
-const ETH_PRICE_URL =
-  `https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=${FIAT_CURRENCIES.join(',').toLowerCase()}`
+/** Coinbase public FX: units of each currency per 1 ETH. */
+const ETH_PRICE_URL = 'https://api.coinbase.com/v2/exchange-rates?currency=ETH'
 const CURVE_RETH_WETH_POOL =
   'https://api.geckoterminal.com/api/v2/networks/eth/pools/0x9efe1a1cbd6ca51ee8319afc4573d253c3b732af'
 
@@ -18,6 +18,11 @@ async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   return response.json() as Promise<T>
 }
 
+function parseFiatRate(value: unknown): number | null {
+  const rate = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN
+  return Number.isFinite(rate) && rate > 0 ? rate : null
+}
+
 export async function loadMarketData(redemptionRate: number, signal?: AbortSignal): Promise<MarketData> {
   const result: MarketData = {
     ethFiat: emptyFiatRates(),
@@ -27,18 +32,16 @@ export async function loadMarketData(redemptionRate: number, signal?: AbortSigna
   }
 
   const [fiat, market] = await Promise.allSettled([
-    fetchJson<{ ethereum?: Record<string, number> }>(ETH_PRICE_URL, signal),
+    fetchJson<{ data?: { rates?: Record<string, string | number> } }>(ETH_PRICE_URL, signal),
     fetchJson<{
       data?: { attributes?: { base_token_price_quote_token?: string } }
     }>(CURVE_RETH_WETH_POOL, signal),
   ])
 
   if (fiat.status === 'fulfilled') {
+    const rates = fiat.value.data?.rates
     for (const currency of FIAT_CURRENCIES) {
-      const rate = fiat.value.ethereum?.[currency.toLowerCase()]
-      if (typeof rate === 'number' && Number.isFinite(rate) && rate > 0) {
-        result.ethFiat[currency] = rate
-      }
+      result.ethFiat[currency] = parseFiatRate(rates?.[currency])
     }
   }
 

@@ -76,10 +76,10 @@ export function MethodologyPage() {
             for the common historical exchange-rate grid.
           </li>
           <li>Alchemy RPC and transfer-history API for live and historical Ethereum reads.</li>
-          <li>CoinGecko for ETH prices in the dashboard’s supported fiat currencies.</li>
+          <li>Coinbase for ETH prices in the dashboard’s supported fiat currencies.</li>
           <li>
             DefiLlama for the daily historical ETH/USD prices used in the earnings table. Non-USD
-            fiat columns convert that series with the live ETH spot FX from CoinGecko.
+            fiat columns convert that series with the live ETH spot FX from Coinbase.
           </li>
           <li>GeckoTerminal for the Curve rETH/WETH spot-market comparison.</li>
           <li>Cloudflare Pages, Functions, and cookieless Web Analytics for hosting and aggregate statistics.</li>

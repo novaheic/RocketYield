@@ -69,7 +69,7 @@ export function PrivacyPage() {
         <h2>Fiat- und Marktdaten</h2>
         <p>
           Für die Anzeige in USD, EUR, AUD, CAD, CNY, GBP, JPY oder KRW und den
-          rETH/WETH-Marktvergleich stellt der Browser Anfragen an CoinGecko und GeckoTerminal.
+          rETH/WETH-Marktvergleich stellt der Browser Anfragen an Coinbase und GeckoTerminal.
           Historische tägliche ETH/USD-Kurse für die Ertragstabelle werden von DefiLlama abgerufen
           und zur Beschleunigung im IndexedDB-Speicher des Browsers zwischengespeichert.
           Dabei werden keine Wallet-Adresse und keine Portfoliodaten übermittelt; die Anbieter
@@ -135,7 +135,7 @@ export function PrivacyPage() {
           stored in your own browser history. The shared historical rETH exchange-rate series is
           loaded from the public `/api/rates` endpoint (Cloudflare KV) and contains no wallet
           addresses. Your selected fiat currency is saved in localStorage so it can be restored on
-          later visits. CoinGecko, GeckoTerminal, and DefiLlama receive ordinary browser request
+          later visits. Coinbase, GeckoTerminal, and DefiLlama receive ordinary browser request
           metadata when current or historical prices are loaded. Historical daily ETH/USD prices are
           cached in your browser’s IndexedDB storage.
         </p>

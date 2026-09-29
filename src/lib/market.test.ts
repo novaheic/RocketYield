@@ -13,20 +13,23 @@ describe('loadMarketData', () => {
     vi.unstubAllGlobals()
   })
 
-  it('loads every supported fiat rate from CoinGecko', async () => {
+  it('loads every supported fiat rate from Coinbase', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
         jsonResponse({
-          ethereum: {
-            usd: 4_000,
-            eur: 3_400,
-            aud: 6_000,
-            cad: 5_500,
-            cny: 28_000,
-            gbp: 3_000,
-            jpy: 600_000,
-            krw: 5_600_000,
+          data: {
+            currency: 'ETH',
+            rates: {
+              USD: '4000',
+              EUR: '3400',
+              AUD: '6000',
+              CAD: '5500',
+              CNY: '28000',
+              GBP: '3000',
+              JPY: '600000',
+              KRW: '5600000',
+            },
           },
         }),
       )
@@ -39,9 +42,7 @@ describe('loadMarketData', () => {
 
     const result = await loadMarketData(1.1)
 
-    expect(fetchMock.mock.calls[0][0]).toContain(
-      'vs_currencies=usd,eur,aud,cad,cny,gbp,jpy,krw',
-    )
+    expect(fetchMock.mock.calls[0][0]).toContain('api.coinbase.com/v2/exchange-rates')
     expect(result.ethFiat).toEqual({
       USD: 4_000,
       EUR: 3_400,
@@ -58,7 +59,7 @@ describe('loadMarketData', () => {
   it('keeps valid rates and reports a partial fiat response', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(jsonResponse({ ethereum: { usd: 4_000 } }))
+      .mockResolvedValueOnce(jsonResponse({ data: { rates: { USD: '4000' } } }))
       .mockResolvedValueOnce(jsonResponse({ data: {} }))
     vi.stubGlobal('fetch', fetchMock)
 
