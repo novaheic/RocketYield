@@ -26,7 +26,7 @@ describe('informational and legal pages', () => {
     render(<PrivacyPage />)
     expect(screen.getAllByText(/Cloudflare Pages/).length).toBeGreaterThan(0)
     expect(screen.getByText(/Alchemy übermittelt/)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Cloudflare Web Analytics' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Eigene Besucherzählung' })).toBeInTheDocument()
     expect(document.body).toHaveTextContent('keine Cookies')
     expect(document.body).toHaveTextContent('Art. 6 Abs. 1 lit. f DSGVO')
   })

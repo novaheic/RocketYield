@@ -1,11 +1,23 @@
 import { ArrowLeft, BarChart3, ShieldCheck } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { LegalLinks } from '../components/StaticPageLayout'
-import { fetchPublicStats, type PublicStats } from '../lib/stats'
+import { VisitorChart } from '../components/VisitorChart'
+import { fetchVisitorStats, type VisitorStats } from '../lib/stats'
 import '../styles/stats.css'
+
+const LAST_THIRTY_DAYS = '30d'
 
 function integer(value: number) {
   return new Intl.NumberFormat('en-US').format(value)
+}
+
+function shortDay(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${value}T00:00:00.000Z`))
 }
 
 function updatedAt(value: string) {
@@ -17,35 +29,35 @@ function updatedAt(value: string) {
   }).format(new Date(value))
 }
 
+function rangeLabel(range: string) {
+  return range === LAST_THIRTY_DAYS ? 'last 30 days' : `in ${range}`
+}
+
 export function StatsPage() {
-  const [stats, setStats] = useState<PublicStats | null>(null)
+  const [range, setRange] = useState(LAST_THIRTY_DAYS)
+  const [stats, setStats] = useState<VisitorStats | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let active = true
-    async function load() {
-      try {
-        const result = await fetchPublicStats()
-        if (active) setStats(result)
-      } catch (caught: unknown) {
-        if (!active) return
+    const controller = new AbortController()
+    setLoading(true)
+    fetchVisitorStats(range, controller.signal)
+      .then((result) => {
+        setStats(result)
+        setError(null)
+      })
+      .catch((caught: unknown) => {
         if (caught instanceof DOMException && caught.name === 'AbortError') return
-        setError(caught instanceof Error ? caught.message : 'Public statistics are unavailable.')
-      }
-    }
-    void load()
-    return () => {
-      active = false
-    }
-  }, [])
+        setError(caught instanceof Error ? caught.message : 'Visitor statistics are unavailable.')
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+    return () => controller.abort()
+  }, [range])
 
-  const chartMax = useMemo(() => {
-    if (!stats) return 1
-    return Math.max(
-      1,
-      ...stats.daily.flatMap((day) => [day.visits, day.pageViews]),
-    )
-  }, [stats])
+  const ranges = [LAST_THIRTY_DAYS, ...(stats?.years ?? []).map(String)]
 
   return (
     <main className="stats-page">
@@ -62,16 +74,16 @@ export function StatsPage() {
 
       <header className="stats-hero">
         <div>
-          <span className="eyebrow">PUBLIC AGGREGATE STATISTICS</span>
-          <h1>How RocketYield is being used.</h1>
+          <span className="eyebrow">PUBLIC VISITOR STATISTICS</span>
+          <h1>How many people visit RocketYield.</h1>
         </div>
         <p>
-          A small, transparent view of reach from privacy-preserving Cloudflare Web Analytics.
-          Visits are a popularity estimate, not a count of identifiable people.
+          Counted by RocketYield itself, not a third-party tracker. A visitor is one browser on one
+          day: coming back tomorrow counts again, reloading today does not.
         </p>
       </header>
 
-      {error && (
+      {error && !stats && (
         <section className="stats-state" role="alert">
           <BarChart3 size={22} />
           <h2>Stats are not available yet.</h2>
@@ -82,74 +94,58 @@ export function StatsPage() {
       {!stats && !error && (
         <section className="stats-state" aria-live="polite">
           <span className="stats-loader" />
-          <h2>Reading aggregate counters</h2>
+          <h2>Reading visitor counts</h2>
         </section>
       )}
 
       {stats && (
         <>
-          <section className="stats-metrics" aria-label="Tracked totals">
+          <section className="stats-metrics" aria-label="Visitor totals">
             <div>
-              <span>Visits</span>
-              <strong>{integer(stats.totals.visits)}</strong>
-              <small>last {stats.totals.periodDays} days</small>
+              <span>Visitors today</span>
+              <strong>{integer(stats.today.visitors)}</strong>
+              <small>since 00:00 UTC</small>
+            </div>
+            <div className="stats-rate">
+              <span>Visitors</span>
+              <strong>{integer(stats.totals.visitors)}</strong>
+              <small>{rangeLabel(stats.range)}</small>
             </div>
             <div>
               <span>Page views</span>
               <strong>{integer(stats.totals.pageViews)}</strong>
-              <small>last {stats.totals.periodDays} days</small>
+              <small>{rangeLabel(stats.range)}</small>
             </div>
             <div>
-              <span>Views per visit</span>
-              <strong>{stats.totals.viewsPerVisit.toFixed(2)}</strong>
-              <small>aggregate ratio</small>
-            </div>
-            <div>
-              <span>30-day visits</span>
-              <strong>{integer(stats.totals.visitsThirtyDays)}</strong>
-              <small>rolling window</small>
-            </div>
-            <div className="stats-rate">
-              <span>30-day page views</span>
-              <strong>{integer(stats.totals.pageViewsThirtyDays)}</strong>
-              <small>{stats.estimated ? 'sampled estimate' : 'unsampled count'}</small>
+              <span>All-time visitors</span>
+              <strong>{integer(stats.allTime.visitors)}</strong>
+              <small>{stats.allTime.since ? `since ${shortDay(stats.allTime.since)}` : 'no visits yet'}</small>
             </div>
           </section>
 
-          <section className="stats-trend" aria-labelledby="trend-heading">
+          <section className="stats-trend" aria-labelledby="trend-heading" aria-busy={loading}>
             <header>
-              <div>
-                <span className="section-index">30D</span>
-                <h2 id="trend-heading">Daily activity</h2>
-              </div>
-              <div className="stats-legend">
-                <span><i className="visitors-key" /> Visits</span>
-                <span><i className="loads-key" /> Page views</span>
+              <h2 id="trend-heading">Daily visitors</h2>
+              <div className="stats-ranges" role="group" aria-label="Time range">
+                {ranges.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={option === range}
+                    onClick={() => setRange(option)}
+                  >
+                    {option === LAST_THIRTY_DAYS ? '30 days' : option}
+                  </button>
+                ))}
               </div>
             </header>
-            <div className="stats-chart">
-              {stats.daily.map((day) => (
-                <div
-                  className="stats-day"
-                  key={day.day}
-                  title={`${day.day}: ${day.visits} visits, ${day.pageViews} page views`}
-                  aria-label={`${day.day}: ${day.visits} visits and ${day.pageViews} page views`}
-                >
-                  <span
-                    className="visitor-bar"
-                    style={{ height: `${Math.max(day.visits ? 3 : 0, (day.visits / chartMax) * 100)}%` }}
-                  />
-                  <span
-                    className="load-bar"
-                    style={{ height: `${Math.max(day.pageViews ? 3 : 0, (day.pageViews / chartMax) * 100)}%` }}
-                  />
-                </div>
-              ))}
+            {error && <p className="stats-inline-error" role="alert">{error}</p>}
+            <div className={loading ? 'stats-chart-wrap is-loading' : 'stats-chart-wrap'}>
+              <VisitorChart key={stats.range} daily={stats.daily} />
             </div>
             <footer>
-              <span>{stats.daily.at(0)?.day}</span>
+              <span>Days are in UTC</span>
               <span>Updated {updatedAt(stats.updatedAt)}</span>
-              <span>{stats.daily.at(-1)?.day}</span>
             </footer>
           </section>
         </>
@@ -158,18 +154,19 @@ export function StatsPage() {
       <section className="stats-privacy">
         <ShieldCheck size={19} />
         <div>
-          <h2>Counts, not portfolios.</h2>
+          <h2>Counts, not people.</h2>
           <p>
-            RocketYield does not send wallet addresses, ENS names, balances, earnings, RPC details,
-            or error contents to analytics. Cloudflare Web Analytics uses no cookies, localStorage,
-            individual profiles, or fingerprinting.
+            Each page load sends an empty request to RocketYield's own server. To recognise a repeat
+            visit on the same day, the server hashes the IP address and browser name with a random
+            salt that is deleted at the end of the day. No cookies, no localStorage, no third-party
+            scripts, and no wallet addresses, ENS names, balances, or earnings are ever stored.
           </p>
         </div>
       </section>
 
       <footer className="stats-footer">
         <LegalLinks />
-        <span>No cookies · no wallet data · no account profiles</span>
+        <span>No cookies · no trackers · no wallet data</span>
       </footer>
     </main>
   )

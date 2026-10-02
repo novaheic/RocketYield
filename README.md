@@ -1,141 +1,210 @@
+<div align="center">
+
+<img src="public/social-preview.png" alt="RocketYield — watch your rETH climb" width="720" />
+
 # RocketYield
 
-A quiet, read-only dashboard for Rocket Pool stakers. Enter an Ethereum address or ENS name to see the ETH value of its rETH, balance-weighted earnings, trailing yield, projections, and transfer-aware history.
+**Watch your rETH climb.**
 
-RocketYield never connects a wallet and never asks for a signature. The tracked address lives in the URL so a view can be bookmarked or shared.
+A read-only dashboard for Rocket Pool stakers. Paste an Ethereum address or ENS name and see what your rETH is worth in ETH, what it has really earned, and how fast it is growing.
 
-## Local setup
+[**rocketyield.net**](https://rocketyield.net) · [Methodology](https://rocketyield.net/methodology) · [Report a bug](https://github.com/novaheic/RocketYield/issues)
 
-Requirements: Node.js 20.19+ (or 22.12+) and an Ethereum mainnet RPC endpoint that supports archive reads and broad `eth_getLogs` queries.
+[![Deploy Cloudflare Pages](https://github.com/novaheic/RocketYield/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/novaheic/RocketYield/actions/workflows/deploy-pages.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
+
+</div>
+
+---
+
+## Why
+
+rETH doesn't rebase: your token balance stays fixed while each token becomes worth more ETH. That makes the question stakers actually care about — *how much ETH is my rETH worth, and how much has it earned?* — surprisingly hard to answer. Portfolio trackers show rETH as one line in a long list, and the Rocket Pool site leaves the math to you.
+
+RocketYield answers that question on one calm screen, designed to stay open on a second monitor.
+
+## Features
+
+- **Live position in ETH.** The current ETH value of your rETH, ticking up between oracle updates, with fiat value alongside.
+- **Real earnings.** Today, 7d, 30d, 90d, and lifetime, calculated from your actual balance history. Buying more rETH doesn't inflate past earnings, and selling doesn't erase them.
+- **Yield.** Trailing 7d and 30d APR / APY.
+- **Projections.** Expected earnings per day, month, and year at the current 7-day rate, compared with your realized 30-day pace.
+- **Charts and history.** rETH/ETH rate over time, daily earnings, and a daily earnings table with CSV and JSON export.
+- **Market vs. redemption rate.** Live DEX premium or discount from the Curve rETH/WETH pool.
+- **Milestones.** "0.01 ETH earned in about 3 days."
+- **Eight fiat currencies.** USD, EUR, GBP, AUD, CAD, CNY, JPY, KRW.
+- **Shareable.** The address lives in the URL (`?address=vitalik.eth`), so any view can be bookmarked or shared.
+
+### Privacy by design
+
+- **No wallet connection, no signatures.** RocketYield only reads public chain data.
+- **No accounts, no cookies.** Settings like the fiat currency are kept in your browser's `localStorage`; chain data is cached in IndexedDB.
+- **Cookieless, first-party visitor counts.** No third-party analytics. Each page load pings `/api/visitors`, which counts one visitor per browser per day using a salted hash that is deleted daily; only daily totals are stored (Cloudflare D1). Wallet addresses, ENS names, balances, and earnings are never recorded. The totals are public at [`/stats`](https://rocketyield.net/stats).
+
+## How it works
+
+Earnings come from the change in the rETH/ETH exchange rate, weighted by how much rETH the address held at each point in time:
+
+```
+earnings = Σ (rETH balance held during period × rate change during that period)
+```
+
+Any window (7d, 30d, lifetime) is a slice of that timeline. The full write-up, including contracts, sampling, and limitations, is on the [methodology page](https://rocketyield.net/methodology) (English and German).
+
+| Data | Source |
+|---|---|
+| Current balance and redemption rate | `balanceOf` and `getExchangeRate` on the mainnet rETH contract |
+| Balance history | `alchemy_getAssetTransfers` on Alchemy; filtered rETH `Transfer` logs on other providers |
+| Rate history | Shared timeline from `GET /api/rates` (Cloudflare KV), with historical `getExchangeRate` calls at the wallet's transfer blocks. Falls back to sampling entirely in the browser if the API is unavailable. |
+| ETH fiat prices | Coinbase |
+| Market rate | GeckoTerminal (Curve rETH/WETH) |
+
+Price providers are optional: if they fail, the on-chain ETH figures still load.
+
+> **The ticking balance is an estimate.** Rocket Pool's rate changes in discrete oracle updates, roughly every 24 hours. RocketYield smooths the recent realized rate between updates and snaps to the real on-chain value at each update.
+
+## Tech stack
+
+[React 19](https://react.dev) + [TypeScript](https://www.typescriptlang.org) + [Vite](https://vite.dev) · [viem](https://viem.sh) for chain reads · [Lightweight Charts](https://tradingview.github.io/lightweight-charts/) · [Cloudflare Pages](https://pages.cloudflare.com) + Pages Functions + KV · [Vitest](https://vitest.dev) and [Playwright](https://playwright.dev) for tests.
+
+## Getting started
+
+### Prerequisites
+
+- Node.js **20.19+** or **22.12+**
+- An Ethereum mainnet RPC endpoint with **archive reads** and broad `eth_getLogs` support. A free [Alchemy](https://www.alchemy.com) or [Infura](https://www.infura.io) key works. Generic free public endpoints usually reject the log ranges this app needs.
+
+### Run the frontend
 
 ```bash
+git clone https://github.com/novaheic/RocketYield.git
+cd RocketYield
 npm install
-copy .env.example .env.local
+cp .env.example .env.local   # Windows: copy .env.example .env.local
+```
+
+Set `VITE_ETHEREUM_RPC_URL` in `.env.local`, then:
+
+```bash
 npm run dev
 ```
 
-Set `VITE_ETHEREUM_RPC_URL` in `.env.local`. The example uses an Alchemy URL placeholder; Infura or another archive-capable provider also works. Generic free public endpoints often reject the lifetime log ranges this app needs. A Vite environment variable is visible to the browser, so apply provider domain restrictions and never treat the URL as a server-side secret.
+This runs the full dashboard. Without Cloudflare Functions, `/api/rates` is absent and the browser samples rate history itself (slower on first load), and `/stats` has no data.
 
-## Data model
+> **Note:** `VITE_` variables are bundled into the client and visible to anyone. Treat the browser RPC URL as public and use your provider's domain/origin restrictions.
 
-- Current balance and redemption rate come from the mainnet rETH contract.
-- On Alchemy, the app pages through `alchemy_getAssetTransfers`; other providers use filtered rETH `Transfer` logs. Both paths reconstruct the balance held at each point in time without Alchemy Free Tier’s 10-block log-range limit.
-- The shared rETH/ETH rate timeline (monthly older points, daily for the latest ~90 days) is served from Cloudflare KV via `GET /api/rates`, refreshed lazily from an archive RPC. The browser only fills rates at that wallet’s transfer blocks (and falls back to full client sampling when the API is unavailable, e.g. plain `npm run dev`).
-- Earnings are calculated as the sum of each held balance multiplied by the next realized rate change. Buying more rETH does not inflate earlier earnings, and selling does not remove earnings already realized.
-- Coinbase supplies ETH prices in USD, EUR, AUD, CAD, CNY, GBP, JPY, and KRW. The selected fiat currency is remembered in localStorage. GeckoTerminal supplies the optional Curve rETH/WETH spot quote. Either provider may fail without blocking on-chain ETH figures.
-- IndexedDB caches completed block ranges locally. Refreshes request only newer blocks.
+### Run with Cloudflare Pages Functions
 
-The ticking balance is explicitly an estimate. Rocket Pool’s rate changes in discrete oracle updates, usually around every 24 hours. RocketYield smooths the recent realized rate between updates and snaps back to the next on-chain value.
-
-## Methodology, privacy, and legal pages
-
-- `/methodology` documents contracts, formulas, sampling, estimates, sources, and limitations in English and German.
-- `/impressum` contains the German provider information and an English legal-notice translation.
-- `/privacy` and `/datenschutz` explain hosting, RPC, price providers, local storage, cookieless analytics, and data-subject rights in German and English.
-- Every main surface links to these pages through the footer.
-
-Cloudflare Web Analytics provides aggregate visits and page views without cookies, localStorage, browser IDs, individual profiles, or fingerprinting. Successful dashboard loads are not tracked.
-
-## Commands
+To test the shared rate cache (`/api/rates`) and the stats endpoint locally:
 
 ```bash
-npm run dev
+cp .dev.vars.example .dev.vars   # then fill in ETHEREUM_RPC_URL
+npm run cf:dev
+```
+
+Open <http://localhost:8788>. This needs a configured `wrangler.jsonc` — see [Deploy your own](#deploy-your-own).
+
+### Configuration
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `VITE_ETHEREUM_RPC_URL` | `.env.local` / build env | Archive RPC used by the browser. Public. |
+| `ETHEREUM_RPC_URL` | `.dev.vars` / Pages secret | Server-only archive RPC used to refresh the shared rate cache. |
+| `RATE_HISTORY` | `wrangler.jsonc` (KV binding) | KV namespace for the shared rate timeline. |
+| `STATS_DB` | `wrangler.jsonc` (D1 binding) | D1 database for daily visitor counts. Tables are created on first use. |
+
+### Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the Vite dev server |
+| `npm run build` | Type-check and build to `dist/` |
+| `npm run preview` | Preview the production build |
+| `npm run cf:dev` | Build and run with Cloudflare Pages Functions locally |
+| `npm run lint` | Run ESLint |
+| `npm test` | Run unit tests (Vitest) |
+| `npm run test:e2e` | Run responsive end-to-end tests (Playwright) |
+| `npm run typecheck:functions` | Type-check the Pages Functions |
+
+## Deploy your own
+
+**Any static host:** run `npm run build` with `VITE_ETHEREUM_RPC_URL` set and publish `dist/`. Everything except the shared rate cache and `/stats` works this way.
+
+**Cloudflare Pages (full setup, free tier):** the repo ships a GitHub Actions workflow ([`deploy-pages.yml`](.github/workflows/deploy-pages.yml)) that builds and deploys on every push to `main`. Use it instead of Cloudflare's "Connect to Git" builds.
+
+1. **Create the Pages project** (without connecting Git):
+
+   ```bash
+   npx wrangler login
+   npx wrangler pages project create rocketyield
+   ```
+
+2. **Create the KV namespace** for rate history and the D1 database for visitor counts:
+
+   ```bash
+   npx wrangler kv namespace create RATE_HISTORY
+   npx wrangler kv namespace create RATE_HISTORY --preview
+   npx wrangler d1 create rocketyield-stats
+   ```
+
+3. **Edit `wrangler.jsonc`.** It contains the IDs for the official rocketyield.net deployment. Replace the KV `id` / `preview_id` and the D1 `database_id` with yours.
+
+4. **Add GitHub Actions secrets** under *Settings → Secrets and variables → Actions*:
+
+   | Secret | Value |
+   |---|---|
+   | `CLOUDFLARE_API_TOKEN` | API token with **Account → Cloudflare Pages → Edit** |
+   | `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
+   | `VITE_ETHEREUM_RPC_URL` | Archive RPC URL baked into the browser build |
+
+5. **Add the Function secret:**
+
+   ```bash
+   npx wrangler pages secret put ETHEREUM_RPC_URL --project-name rocketyield
+   ```
+
+6. **Push to `main`** (or run the *Deploy Cloudflare Pages* workflow manually). The deploy URL appears in the Actions log.
+
+The shared rate cache refreshes lazily: when it's empty or older than about six hours, the next `/api/rates` request rebuilds it from the archive RPC. The first cold request after deploy can take a moment.
+
+## Project structure
+
+```
+functions/            Cloudflare Pages Functions
+  api/rates.ts          Shared rETH/ETH rate timeline (KV-backed)
+  api/visitors.ts       Cookieless visitor counter and /stats data (D1-backed)
+src/
+  components/           Dashboard UI (balance hero, metrics, charts, tables)
+  hooks/                useRocketYield: data loading and live ticking
+  lib/chain/            viem client, contracts, transfer history, IndexedDB cache
+  lib/analytics/        Earnings timeline, daily earnings, units
+  lib/                  Formatting, fiat prices, market rate, CSV export
+  pages/                Methodology, stats, privacy, and legal pages
+tests/                Playwright end-to-end tests
+```
+
+## Limitations
+
+- The first load for an old, active wallet must fetch that address's full transfer history, which can take a while. Later visits only request newer blocks.
+- RPC providers may rate-limit or reject archive requests. The UI reports these failures instead of substituting sample values.
+- Fiat values and the market rate depend on third-party APIs and may be briefly unavailable.
+
+## Contributing
+
+Issues and pull requests are welcome. For larger changes, please open an issue first to discuss the idea.
+
+Before submitting a PR, make sure these pass:
+
+```bash
 npm run lint
 npm test
-npm run test:e2e
 npm run build
-npm run preview
 ```
 
-## Static deployment
+## License
 
-Build with `npm run build` and publish `dist/` to any static host. Configure `VITE_ETHEREUM_RPC_URL` at build time. The core UI can run as a static site with client-side history reads; shared rate caching and public statistics require Cloudflare Pages Functions.
+[MIT](LICENSE)
 
-## Shared Rocket Pool rate history
+## Disclaimer
 
-`GET /api/rates` returns the shared exchange-rate timeline from Cloudflare KV. When the cache is empty or older than about six hours (or more than ~one day of blocks behind tip), the Function refreshes it from Ethereum using a server-only `ETHEREUM_RPC_URL` secret. The first cold refresh after deploy can take a moment; later visitors reuse the cache.
-
-### Wire up KV and the RPC secret
-
-1. Create KV namespaces and put their IDs into `wrangler.jsonc`:
-
-```bash
-npx wrangler kv namespace create RATE_HISTORY
-npx wrangler kv namespace create RATE_HISTORY --preview
-```
-
-2. Add the archive RPC URL as a Pages secret (and in `.dev.vars` for local Pages):
-
-```bash
-npx wrangler pages secret put ETHEREUM_RPC_URL --project-name rocketyield
-```
-
-3. Copy `.dev.vars.example` to `.dev.vars`, set `ETHEREUM_RPC_URL`, then run:
-
-```bash
-npm run cf:dev
-```
-
-Open `http://localhost:8788` and load a wallet. Regular `npm run dev` still works: when `/api/rates` is absent the browser falls back to sampling the shared grid itself.
-
-## Free public statistics on Cloudflare
-
-The `/stats` page uses a Cloudflare Pages Function to read aggregate Web Analytics data with a server-only token. It displays visits and page views, not successful reads or identifiable users. Wallet addresses, ENS names, balances, earnings, RPC details, and error contents are never sent to analytics.
-
-### Test locally
-
-1. Complete the Cloudflare setup below (and the rate-history KV setup above if you want `/api/rates`).
-2. Copy `.dev.vars.example` to `.dev.vars` and add the read-only API token plus `ETHEREUM_RPC_URL`.
-3. Put the Cloudflare account ID and Web Analytics site tag in `wrangler.jsonc`.
-4. Start Pages:
-
-```bash
-npm run cf:dev
-```
-
-Open `http://localhost:8788/stats`. Regular `npm run dev` still runs the frontend, but its server-side stats and rates endpoints are absent.
-
-### Deploy on the free tier (GitHub Actions)
-
-Prefer this over Cloudflare’s built-in “Connect to Git” Builds UI. Actions runs `npm run build` and `wrangler pages deploy` on every push to `main` (see [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)).
-
-1. Create a free Cloudflare account, then sign in locally:
-
-```bash
-npx wrangler login
-```
-
-2. Create a **Pages** project **without** connecting Git (or disconnect Git if you already connected it — leave Builds unused):
-
-```bash
-npx wrangler pages project create rocketyield
-```
-
-3. Create a Cloudflare API token with **Account → Cloudflare Pages → Edit**. Note your Account ID from the dashboard overview.
-
-4. In the GitHub repo → **Settings → Secrets and variables → Actions**, add:
-
-| Secret | Value |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | Pages Edit token from step 3 |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
-| `VITE_ETHEREUM_RPC_URL` | Archive RPC URL (baked into the browser build) |
-
-5. Push to `main` (or run the **Deploy Cloudflare Pages** workflow manually). Check the Actions tab for the deploy URL.
-
-6. Enable Web Analytics on the Pages project; copy the site tag. Create a second API token with only **Account Analytics: Read**. Put the account ID and site tag in `wrangler.jsonc`, set KV IDs (see above), commit, then add Function secrets:
-
-```bash
-npx wrangler pages secret put CLOUDFLARE_ANALYTICS_TOKEN --project-name rocketyield
-npx wrangler pages secret put ETHEREUM_RPC_URL --project-name rocketyield
-```
-
-The next push redeploys with updated `wrangler.jsonc` bindings.
-
-The analytics token never reaches the browser. The public API returns only totals and daily aggregates. Web Analytics does not use cookies, localStorage, browser IDs, or fingerprinting. Visits are still approximate and can include bots; Cloudflare may sample higher-volume data.
-
-## Limits
-
-First load for an old, active wallet still needs that address’s transfer history. Shared rate points come from `/api/rates` when Cloudflare Functions are configured; otherwise the browser samples the grid itself. An endpoint may still rate-limit or reject archive access. The UI reports those failures without substituting sample values.
-
-Unofficial community tool. Not affiliated with Rocket Pool.
+RocketYield is an unofficial community tool and is not affiliated with Rocket Pool. Figures are informational estimates, not financial advice — verify anything important on-chain.

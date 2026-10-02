@@ -3,16 +3,19 @@
 	"name": "rocketyield",
 	"pages_build_output_dir": "./dist",
 	"compatibility_date": "2026-09-21",
-	"vars": {
-		"CLOUDFLARE_ACCOUNT_ID": "7a3c4fe30d6a81c02711d796e085813d",
-		"WEB_ANALYTICS_SITE_TAG": "159bcf95973e4867976e72c1ccdfbf58"
-	},
 	"kv_namespaces": [
 		{
 			"binding": "RATE_HISTORY",
 			"id": "22ca36cb4d1b46799545e65222d44e34",
 			"preview_id": "48b25a8bc38949df85df4b552d0e65f2",
 			"remote": true
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "STATS_DB",
+			"database_name": "rocketyield-stats",
+			"database_id": "5b4cdfe6-7c59-4cce-a418-ff771ab168d2"
 		}
 	]
 }

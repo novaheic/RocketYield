@@ -82,7 +82,7 @@ export function MethodologyPage() {
             fiat columns convert that series with the live ETH spot FX from Coinbase.
           </li>
           <li>GeckoTerminal for the Curve rETH/WETH spot-market comparison.</li>
-          <li>Cloudflare Pages, Functions, and cookieless Web Analytics for hosting and aggregate statistics.</li>
+          <li>Cloudflare Pages, Functions, KV, and D1 for hosting, the shared rate cache, and cookieless visitor counts.</li>
         </ul>
         <p>
           Market quotes exclude gas and user-specific slippage. Fiat and market APIs can be stale,

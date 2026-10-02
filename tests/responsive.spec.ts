@@ -70,32 +70,35 @@ test('the wide earnings table scrolls inside its section on mobile', async ({ pa
   expect(layout.tableScrolls).toBe(true)
 })
 
-test('public stats remain readable with large totals and thirty days of data', async ({ page }) => {
-  await page.route('**/api/analytics/stats', (route) =>
+test('public stats remain readable with large totals and a full year of data', async ({ page, isMobile }) => {
+  const start = Date.UTC(2026, 0, 1)
+  await page.route('**/api/visitors?*', (route) =>
     route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
-        totals: {
-          visits: 12345678,
-          pageViews: 98765432,
-          viewsPerVisit: 8,
-          visitsThirtyDays: 5432100,
-          pageViewsThirtyDays: 4321000,
-          periodDays: 180,
-        },
-        daily: Array.from({ length: 30 }, (_, index) => ({
-          day: `2026-09-${String(index + 1).padStart(2, '0')}`,
+        range: '2026',
+        years: [2026],
+        daily: Array.from({ length: 365 }, (_, index) => ({
+          day: new Date(start + index * 86_400_000).toISOString().slice(0, 10),
+          visitors: index * 500,
           pageViews: index * 1000,
-          visits: index * 500,
         })),
-        updatedAt: '2026-09-21T12:00:00.000Z',
-        estimated: false,
+        totals: { visitors: 5432100, pageViews: 9876543 },
+        today: { visitors: 1234, pageViews: 2345 },
+        allTime: { visitors: 12345678, pageViews: 23456789, since: '2026-01-01' },
+        updatedAt: '2026-12-31T12:00:00.000Z',
       }),
     }),
   )
   await page.goto('/stats')
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('RocketYield is being used')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('visit RocketYield')
   await expect(page.getByText('12,345,678')).toBeVisible()
+  const plot = page.getByRole('group', { name: /daily visitors/i })
+  const box = (await plot.boundingBox())!
+  const lastDay = { x: box.width - 0.5, y: box.height / 2 }
+  if (isMobile) await plot.tap({ position: lastDay })
+  else await plot.hover({ position: lastDay })
+  await expect(page.getByRole('status')).toContainText(isMobile ? /Dec \d+, 2026/ : 'Dec 31, 2026')
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
   expect(overflow).toBe(false)
 })
@@ -109,7 +112,7 @@ test('methodology and legal pages expose required information without overflow',
   await expect(page.getByRole('link', { name: 'novaheidt@gmail.com' }).first()).toBeVisible()
 
   await page.goto('/privacy')
-  await expect(page.getByRole('heading', { name: 'Cloudflare Web Analytics' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Eigene Besucherzählung' })).toBeVisible()
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
   expect(overflow).toBe(false)
 })

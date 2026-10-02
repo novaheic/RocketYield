@@ -25,8 +25,8 @@
     "viem": "^2.37.3"
   },
   "devDependencies": {
-    "@eslint/js": "^9.35.0",
     "@cloudflare/workers-types": "^5.20260921.1",
+    "@eslint/js": "^9.35.0",
     "@playwright/test": "^1.55.0",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
@@ -44,5 +44,6 @@
     "vite": "^7.1.6",
     "vitest": "^5.0.1",
     "wrangler": "^4.136.1"
-  }
+  },
+  "license": "MIT"
 }

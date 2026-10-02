@@ -40,19 +40,19 @@ const emptyData = {
 } as unknown as DashboardData
 
 describe('AnalyticsCharts empty states', () => {
-  it('shows the value empty state when the address never held rETH', () => {
-    render(<AnalyticsCharts data={emptyData} />)
-
-    expect(screen.getByRole('status')).toHaveTextContent('No position to chart')
-    expect(screen.getByText(/no reth holdings in the scanned history/i)).toBeInTheDocument()
-  })
-
   it('shows the earnings empty state when there is nothing to plot', () => {
     render(<AnalyticsCharts data={emptyData} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Earnings' }))
-
     expect(screen.getByRole('status')).toHaveTextContent('No daily earnings yet')
     expect(screen.getByText(/accrues yield while held/i)).toBeInTheDocument()
+  })
+
+  it('shows the value empty state when the address never held rETH', () => {
+    render(<AnalyticsCharts data={emptyData} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Value' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('No position to chart')
+    expect(screen.getByText(/no reth holdings in the scanned history/i)).toBeInTheDocument()
   })
 })

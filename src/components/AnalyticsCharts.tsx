@@ -203,7 +203,7 @@ export function AnalyticsCharts({ data }: ChartProps) {
   const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null)
   const timesRef = useRef<Time[]>([])
   const [range, setRange] = useState<ChartRange>('30d')
-  const [mode, setMode] = useState<ChartMode>('value')
+  const [mode, setMode] = useState<ChartMode>('earnings')
   const rangeRef = useRef(range)
   rangeRef.current = range
 

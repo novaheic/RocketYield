@@ -81,27 +81,32 @@ export function PrivacyPage() {
 
       <section className="static-section legal-copy" lang="de">
         <span className="static-index">DE / 05</span>
-        <h2>Cloudflare Web Analytics</h2>
+        <h2>Eigene Besucherzählung</h2>
         <p>
-          RocketYield verwendet Cloudflare Web Analytics zur aggregierten Reichweiten- und
-          Performance-Messung. Erfasst werden insbesondere Seitenaufrufe, Besuche, Referrer,
-          ungefährer Standort, Gerätetyp und Ladezeiten. Es werden keine Wallet-Adresse,
-          ENS-Namen, Salden, Erträge, RPC-Inhalte oder Fehlermeldungen an die Webanalyse übermittelt.
+          RocketYield zählt Besuche mit einer eigenen, cookielosen Zählung über Cloudflare Pages
+          Functions; es werden keine Analysedienste Dritter eingebunden. Beim Laden einer Seite
+          sendet Ihr Browser eine leere Anfrage an den Endpunkt `/api/visitors`. Damit mehrere
+          Seitenaufrufe desselben Tages nur einmal als Besucher gezählt werden, bildet der Server
+          aus IP-Adresse und Browserkennung (User-Agent) zusammen mit einem zufälligen, täglich
+          neu erzeugten Salt einen gekürzten SHA-256-Hashwert. IP-Adresse und User-Agent selbst
+          werden dabei nicht gespeichert.
         </p>
         <p>
-          Nach Angaben von Cloudflare verwendet Web Analytics keine Cookies, keinen Local Storage,
-          keine individuellen Nutzerprofile und kein Fingerprinting. Für Analysezwecke wird kein
-          clientseitiger Identifikator auf Ihrem Gerät gespeichert oder ausgelesen. Eine
+          Hashwerte und Salt werden mit Beginn des folgenden Tages (UTC) gelöscht; danach ist keine
+          Zuordnung mehr möglich, auch nicht durch den Betreiber. Dauerhaft gespeichert werden
+          ausschließlich aggregierte Tageswerte (Anzahl der Besucher und Seitenaufrufe) in einer
+          Cloudflare-D1-Datenbank. Wallet-Adressen, ENS-Namen, Salden, Erträge, RPC-Inhalte oder
+          Fehlermeldungen werden nicht erfasst. Es werden keine Cookies, kein Local Storage und
+          keine sonstigen Informationen auf Ihrem Gerät gespeichert oder ausgelesen. Eine
           Einwilligung nach § 25 Abs. 1 TDDDG ist daher für diese Reichweitenmessung nicht
           erforderlich.
         </p>
         <p>
           Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Das berechtigte Interesse liegt darin,
-          Reichweite, technische Qualität und Popularität des Dienstes mit einer
-          datensparsamen Lösung zu verstehen. Sie können dieser Verarbeitung aus Gründen, die sich
-          aus Ihrer besonderen Situation ergeben, per E-Mail an die oben genannte Adresse
-          widersprechen. Öffentliche Statistiken zeigen ausschließlich aggregierte Seitenaufrufe
-          und Besuche; das dafür verwendete Cloudflare-API-Token bleibt serverseitig geheim.
+          die Reichweite des Dienstes mit einer datensparsamen Lösung zu verstehen. Sie können
+          dieser Verarbeitung aus Gründen, die sich aus Ihrer besonderen Situation ergeben, per
+          E-Mail an die oben genannte Adresse widersprechen. Die öffentliche Statistik unter
+          `/stats` zeigt ausschließlich aggregierte Tageswerte.
         </p>
       </section>
 
@@ -140,13 +145,17 @@ export function PrivacyPage() {
           cached in your browser’s IndexedDB storage.
         </p>
         <p>
-          Cloudflare Web Analytics measures aggregate page views, visits, referral information,
-          approximate region, device type, and performance. According to Cloudflare it uses no
-          cookies, localStorage, individual profiles, or fingerprinting. Wallets, ENS names,
-          balances, earnings, RPC contents, and error messages are not included. The legal basis is
-          the legitimate interest in privacy-preserving reach and performance measurement under
-          Article 6(1)(f) GDPR. The public statistics endpoint exposes aggregate visits and page
-          views only; its read-only Cloudflare token stays on the server.
+          RocketYield counts visitors itself, without third-party analytics. Each page load sends an
+          empty request to `/api/visitors`. To count repeat page views on the same day only once,
+          the server hashes the IP address and user agent with a random salt that is regenerated
+          daily; the IP address and user agent themselves are not stored. Hashes and the salt are
+          deleted when the next UTC day begins, after which they cannot be linked to anyone. Only
+          aggregate daily totals of visitors and page views are kept, in a Cloudflare D1 database.
+          No cookies, localStorage, or other information on your device is stored or read, and
+          wallets, ENS names, balances, earnings, RPC contents, and error messages are never
+          included. The legal basis is the legitimate interest in privacy-preserving reach
+          measurement under Article 6(1)(f) GDPR. The public `/stats` page shows aggregate daily
+          totals only.
         </p>
         <p>
           You may request access, correction, deletion, restriction, portability, or object to
@@ -156,7 +165,7 @@ export function PrivacyPage() {
       </section>
 
       <aside className="static-callout">
-        <strong>Stand / Last updated: 21.09.2026</strong>
+        <strong>Stand / Last updated: 02.10.2026</strong>
         <p>Material changes to providers or processing will be reflected on this page.</p>
       </aside>
     </StaticPageLayout>
