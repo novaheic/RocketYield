@@ -5,7 +5,7 @@ test('landing page contains the real product entry flow', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toContainText('what it has actually earned')
   await expect(page.getByLabel('Ethereum address or ENS name')).toBeVisible()
   await expect(page.getByText('No wallet connection, signature, or account.')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Stats' }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Methodology' }).first()).toBeVisible()
 })
 
 test('a maximum-length ENS-style string does not overflow the viewport', async ({ page }) => {

@@ -87,6 +87,10 @@ describe('App live-data states', () => {
       screen.getByRole('heading', { name: /watch your reth generate yield/i }),
     ).toBeInTheDocument()
     expect(screen.getByText(/no wallet connection, signature, or account/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'example' })).toHaveAttribute(
+      'href',
+      '/?address=0x4728528E7e697234FD87F3E784678e7FeD3Ab256',
+    )
     expect(screen.getByRole('link', { name: 'Methodology' })).toHaveAttribute('href', '/methodology')
     expect(screen.getByRole('link', { name: 'Impressum' })).toHaveAttribute('href', '/impressum')
     expect(screen.getAllByRole('link', { name: /datenschutz/i })[0]).toHaveAttribute('href', '/privacy')

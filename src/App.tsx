@@ -17,6 +17,7 @@ import { FIAT_CURRENCIES, type FiatCurrency } from './lib/types'
 import './styles/app.css'
 
 const FIAT_STORAGE_KEY = 'rocketyield-fiat-currency'
+const EXAMPLE_ADDRESS = '0x4728528E7e697234FD87F3E784678e7FeD3Ab256'
 
 function currentQuery() {
   return new URLSearchParams(window.location.search).get('address') ?? ''
@@ -65,6 +66,18 @@ function Welcome({ onSubmit }: { onSubmit: (value: string) => void }) {
             Read position <ArrowRight size={17} />
           </button>
         </div>
+        <p className="welcome-example">
+          or check out an{' '}
+          <a
+            href={`/?address=${EXAMPLE_ADDRESS}`}
+            onClick={(event) => {
+              event.preventDefault()
+              onSubmit(EXAMPLE_ADDRESS)
+            }}
+          >
+            example
+          </a>
+        </p>
         <small>No wallet connection, signature, or account.</small>
       </form>
       <div className="welcome-method">

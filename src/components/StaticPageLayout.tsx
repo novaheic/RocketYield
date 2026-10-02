@@ -15,7 +15,6 @@ export function LegalLinks() {
       <a href="/methodology">Methodology</a>
       <a href="/impressum">Impressum</a>
       <a href="/privacy">Datenschutz / Privacy</a>
-      <a href="/stats">Public stats</a>
     </nav>
   )
 }
