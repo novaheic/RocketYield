@@ -46,10 +46,11 @@ function Welcome({ onSubmit }: { onSubmit: (value: string) => void }) {
       <div className="welcome-copy">
         <span className="brand-mark welcome-mark" aria-hidden="true">R</span>
         <h1>Watch your rETH generate yield — live.</h1>
-        <p>
+        <p className="welcome-lede">
           Enter a wallet or ENS name to see your rETH’s live ETH value, what it has earned, and how
           the yield is compounding—read straight from Ethereum, no wallet connection required.
         </p>
+        <p className="welcome-lede-short">See exactly what your rETH has earned.</p>
       </div>
       <form className="welcome-form" onSubmit={submit}>
         <label htmlFor="welcome-address">Ethereum address or ENS name</label>
