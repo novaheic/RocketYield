@@ -103,6 +103,22 @@ function parsePriceItems(items: Array<{ timestamp?: number; price?: number }> | 
   })
 }
 
+/** DefiLlama rejects spans around 600+; keep the same margin as the Pages Function. */
+const DEFILLAMA_MAX_SPAN = 500
+
+function buildSpanChunks(start: number, span: number) {
+  const chunks: Array<{ start: number; span: number }> = []
+  let remaining = span
+  let cursor = start
+  while (remaining > 0) {
+    const chunkSpan = Math.min(DEFILLAMA_MAX_SPAN, remaining)
+    chunks.push({ start: cursor, span: chunkSpan })
+    cursor += chunkSpan * DAY_SECONDS
+    remaining -= chunkSpan
+  }
+  return chunks
+}
+
 async function fetchPriceSeries(
   url: string,
   signal: AbortSignal | undefined,
@@ -113,6 +129,30 @@ async function fetchPriceSeries(
   const fresh = parse(await response.json())
   if (fresh.length === 0) throw new Error('Historical ETH prices unavailable')
   return fresh
+}
+
+async function fetchDefiLlamaChunked(
+  start: number,
+  span: number,
+  signal?: AbortSignal,
+): Promise<HistoricalPricePoint[]> {
+  const collected: HistoricalPricePoint[] = []
+  for (const chunk of buildSpanChunks(start, span)) {
+    const response = await fetch(
+      `${PRICE_API_FALLBACK}?start=${chunk.start}&span=${chunk.span}&period=1d`,
+      { signal, headers: { Accept: 'application/json' } },
+    )
+    if (!response.ok) {
+      throw new Error(`Historical ETH prices unavailable (HTTP ${response.status})`)
+    }
+    const prices = parsePriceItems(
+      ((await response.json()) as DefiLlamaChartResponse).coins?.['coingecko:ethereum']?.prices,
+    )
+    collected.push(...prices)
+  }
+  const merged = normalizePrices(collected)
+  if (merged.length === 0) throw new Error('Historical ETH prices unavailable')
+  return merged
 }
 
 export async function loadHistoricalEthUsd(
@@ -131,24 +171,19 @@ export async function loadHistoricalEthUsd(
   const start = utcDay(startTimestamp)
   const fetchEnd = utcDay(endTimestamp) + DAY_SECONDS
   const span = Math.max(1, Math.floor((fetchEnd - start) / DAY_SECONDS) + 1)
-  const query = `start=${start}&span=${span}`
 
   let fresh: HistoricalPricePoint[]
   try {
+    // Pages Function chunks DefiLlama server-side; one browser request covers the full span.
     fresh = await fetchPriceSeries(
-      `${PRICE_API}?${query}`,
+      `${PRICE_API}?start=${start}&span=${span}`,
       signal,
       (payload) => parsePriceItems((payload as ProxiedHistoricalPricesResponse).prices),
     )
   } catch (error) {
     if (signal?.aborted) throw error
-    // Local `vite` without Pages Functions has no proxy; fall back to DefiLlama directly.
-    fresh = await fetchPriceSeries(
-      `${PRICE_API_FALLBACK}?${query}&period=1d`,
-      signal,
-      (payload) =>
-        parsePriceItems((payload as DefiLlamaChartResponse).coins?.['coingecko:ethereum']?.prices),
-    )
+    // Local `vite` without Pages Functions has no proxy; fall back to chunked DefiLlama.
+    fresh = await fetchDefiLlamaChunked(start, span, signal)
   }
 
   const merged = normalizePrices([...cached, ...fresh])

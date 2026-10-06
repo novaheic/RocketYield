@@ -2,6 +2,9 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  buildSpanChunks,
+  DAY_SECONDS,
+  DEFILLAMA_MAX_SPAN,
   fetchHistoricalEthUsd,
   MAX_SPAN_DAYS,
   parseDefiLlamaChart,
@@ -36,6 +39,18 @@ describe('historical price proxy helpers', () => {
     expect(
       parseHistoricalPriceQuery(new URL('https://rocketyield.net/api/historical-prices?start=100&span=10')),
     ).toBeNull()
+  })
+
+  it('splits long spans into DefiLlama-safe chunks', () => {
+    expect(buildSpanChunks(1_700_000_000, 1_340)).toEqual([
+      { start: 1_700_000_000, span: DEFILLAMA_MAX_SPAN },
+      { start: 1_700_000_000 + DEFILLAMA_MAX_SPAN * DAY_SECONDS, span: DEFILLAMA_MAX_SPAN },
+      {
+        start: 1_700_000_000 + DEFILLAMA_MAX_SPAN * 2 * DAY_SECONDS,
+        span: 1_340 - DEFILLAMA_MAX_SPAN * 2,
+      },
+    ])
+    expect(buildSpanChunks(1_700_000_000, 40)).toEqual([{ start: 1_700_000_000, span: 40 }])
   })
 
   it('normalizes DefiLlama payloads and drops invalid candles', () => {
@@ -81,6 +96,38 @@ describe('historical price proxy helpers', () => {
     ])
     expect(fetchMock.mock.calls[0][0]).toContain('start=1700000000')
     expect(fetchMock.mock.calls[0][0]).toContain('period=1d&span=2')
+  })
+
+  it('chunks long ranges into multiple DefiLlama requests', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
+      const parsed = new URL(url)
+      const start = Number(parsed.searchParams.get('start'))
+      const span = Number(parsed.searchParams.get('span'))
+      expect(span).toBeLessThanOrEqual(DEFILLAMA_MAX_SPAN)
+      return {
+        ok: true,
+        json: async () => ({
+          coins: {
+            'coingecko:ethereum': {
+              prices: Array.from({ length: span }, (_, index) => ({
+                timestamp: start + index * DAY_SECONDS,
+                price: 2_000 + index,
+              })),
+            },
+          },
+        }),
+      }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await fetchHistoricalEthUsd(1_700_000_000, 1_340)
+
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(result).toHaveLength(1_340)
+    expect(result[0]).toEqual({ timestamp: 1_700_000_000, price: 2_000 })
+    expect(result.at(-1)?.timestamp).toBe(
+      1_700_000_000 + (1_340 - 1) * DAY_SECONDS,
+    )
   })
 
   it('throws when DefiLlama returns an empty series', async () => {

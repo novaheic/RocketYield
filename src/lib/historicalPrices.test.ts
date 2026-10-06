@@ -115,39 +115,37 @@ describe('historical ETH prices', () => {
     expect(idb.set).toHaveBeenCalledOnce()
   })
 
-  it('falls back to DefiLlama when the first-party proxy is unavailable', async () => {
+  it('falls back to chunked DefiLlama when the first-party proxy is unavailable', async () => {
     idb.get.mockResolvedValue(undefined)
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-        json: async () => ({ error: 'missing' }),
-      })
-      .mockResolvedValueOnce({
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
+      if (String(url).startsWith('/api/historical-prices')) {
+        return { ok: false, status: 404, json: async () => ({ error: 'missing' }) }
+      }
+      const parsed = new URL(String(url))
+      const start = Number(parsed.searchParams.get('start'))
+      const span = Number(parsed.searchParams.get('span'))
+      expect(span).toBeLessThanOrEqual(500)
+      return {
         ok: true,
         json: async () => ({
           coins: {
             'coingecko:ethereum': {
-              prices: [
-                { timestamp: 10 * DAY, price: 2_000 },
-                { timestamp: 11 * DAY, price: 2_100 },
-              ],
+              prices: Array.from({ length: span }, (_, index) => ({
+                timestamp: start + index * DAY,
+                price: 2_000 + index,
+              })),
             },
           },
         }),
-      })
+      }
+    })
     vi.stubGlobal('fetch', fetchMock)
 
-    const result = await loadHistoricalEthUsd(10 * DAY, 11 * DAY)
+    const result = await loadHistoricalEthUsd(10 * DAY, 10 * DAY + 1_200 * DAY)
 
-    expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fetchMock.mock.calls[0][0]).toContain('/api/historical-prices?')
-    expect(fetchMock.mock.calls[1][0]).toContain('https://coins.llama.fi/chart/coingecko:ethereum?')
-    expect(result).toEqual([
-      { timestamp: 10 * DAY, price: 2_000 },
-      { timestamp: 11 * DAY, price: 2_100 },
-    ])
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(2)
+    expect(result.length).toBeGreaterThan(1_000)
   })
 
   it('keeps cache access optional when IndexedDB is unavailable', async () => {

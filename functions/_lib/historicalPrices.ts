@@ -1,8 +1,11 @@
 /** Proxied daily ETH/USD history for the earnings table. */
 
 export const PRICE_API = 'https://coins.llama.fi/chart/coingecko:ethereum'
+export const DAY_SECONDS = 86_400
 export const MAX_SPAN_DAYS = 4_000
 export const MIN_START_TIMESTAMP = 1_400_000_000
+/** DefiLlama's chart endpoint rejects spans around 600+; keep a margin under that. */
+export const DEFILLAMA_MAX_SPAN = 500
 
 export interface HistoricalPricePoint {
   timestamp: number
@@ -59,7 +62,27 @@ export function parseDefiLlamaChart(payload: unknown): HistoricalPricePoint[] {
   return normalizeHistoricalPrices(coins ?? [])
 }
 
-export async function fetchHistoricalEthUsd(
+/** Split a long chart window into DefiLlama-safe chunks. */
+export function buildSpanChunks(
+  start: number,
+  span: number,
+  chunkSize = DEFILLAMA_MAX_SPAN,
+): Array<{ start: number; span: number }> {
+  if (span < 1) return []
+  const size = Math.max(1, chunkSize)
+  const chunks: Array<{ start: number; span: number }> = []
+  let remaining = span
+  let cursor = start
+  while (remaining > 0) {
+    const chunkSpan = Math.min(size, remaining)
+    chunks.push({ start: cursor, span: chunkSpan })
+    cursor += chunkSpan * DAY_SECONDS
+    remaining -= chunkSpan
+  }
+  return chunks
+}
+
+async function fetchDefiLlamaChunk(
   start: number,
   span: number,
   signal?: AbortSignal,
@@ -69,8 +92,24 @@ export async function fetchHistoricalEthUsd(
   if (!response.ok) {
     throw new Error(`Historical ETH prices unavailable (HTTP ${response.status})`)
   }
-  const payload: unknown = await response.json()
-  const prices = parseDefiLlamaChart(payload)
-  if (prices.length === 0) throw new Error('Historical ETH prices unavailable')
-  return prices
+  return parseDefiLlamaChart(await response.json())
+}
+
+export async function fetchHistoricalEthUsd(
+  start: number,
+  span: number,
+  signal?: AbortSignal,
+): Promise<HistoricalPricePoint[]> {
+  const chunks = buildSpanChunks(start, span)
+  const collected: HistoricalPricePoint[] = []
+
+  for (const chunk of chunks) {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+    const prices = await fetchDefiLlamaChunk(chunk.start, chunk.span, signal)
+    collected.push(...prices)
+  }
+
+  const merged = normalizeHistoricalPrices(collected)
+  if (merged.length === 0) throw new Error('Historical ETH prices unavailable')
+  return merged
 }
