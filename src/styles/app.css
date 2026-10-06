@@ -83,10 +83,6 @@
   background: var(--surface-inset);
 }
 
-.address-input-wrap:focus-within {
-  border-color: var(--primary);
-}
-
 .address-input-wrap input {
   width: 100%;
   min-width: 0;
