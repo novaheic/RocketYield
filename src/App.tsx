@@ -201,7 +201,7 @@ export default function App() {
   if (isPrivacyPage) return <PrivacyPage />
 
   return (
-    <div className="app-shell">
+    <div className={query ? 'app-shell' : 'app-shell is-landing'}>
       <AddressRail query={query} progress={progress} onSubmit={navigate} />
       <main className="main-stage">
           {!query && <Welcome onSubmit={navigate} />}

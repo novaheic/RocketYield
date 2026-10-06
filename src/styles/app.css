@@ -227,6 +227,11 @@
   font-size: 14px;
 }
 
+.welcome-form input:focus,
+.welcome-form input:focus-visible {
+  outline: none;
+}
+
 .welcome-form button,
 .error-state button {
   display: inline-flex;
@@ -1339,6 +1344,10 @@ footer a:hover {
     backdrop-filter: blur(10px);
   }
 
+  .is-landing .address-rail {
+    display: none;
+  }
+
   .brand small {
     display: none;
   }
@@ -1436,8 +1445,8 @@ footer a:hover {
 
   .welcome {
     min-height: 0;
-    gap: var(--space-6);
-    padding: var(--space-8) 0 0;
+    gap: var(--space-8);
+    padding: var(--space-12) 0 0;
   }
 
   .welcome-mark {
@@ -1468,7 +1477,7 @@ footer a:hover {
   }
 
   .welcome-form {
-    padding: var(--space-6) var(--space-4) var(--space-4);
+    padding: var(--space-8) var(--space-4) var(--space-6);
   }
 
   .welcome-method {
