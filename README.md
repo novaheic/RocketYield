@@ -56,7 +56,7 @@ Any window (7d, 30d, lifetime) is a slice of that timeline. The full write-up, i
 | Current balance and redemption rate | `balanceOf` and `getExchangeRate` on the mainnet rETH contract |
 | Balance history | `alchemy_getAssetTransfers` on Alchemy; filtered rETH `Transfer` logs on other providers |
 | Rate history | Shared timeline from `GET /api/rates` (Cloudflare KV), with historical `getExchangeRate` calls at the wallet's transfer blocks. Falls back to sampling entirely in the browser if the API is unavailable. |
-| ETH fiat prices | Coinbase |
+| ETH fiat prices | Coinbase (live); `/api/historical-prices` → DefiLlama (daily history for the earnings table) |
 | Market rate | GeckoTerminal (Curve rETH/WETH) |
 
 Price providers are optional: if they fail, the on-chain ETH figures still load.

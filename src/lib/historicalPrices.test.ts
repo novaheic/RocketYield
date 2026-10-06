@@ -66,15 +66,11 @@ describe('historical ETH prices', () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        coins: {
-          'coingecko:ethereum': {
-            prices: [
-              { timestamp: 10 * DAY, price: 2_000 },
-              { timestamp: 11 * DAY, price: 2_100 },
-              { timestamp: 12 * DAY, price: 2_200 },
-            ],
-          },
-        },
+        prices: [
+          { timestamp: 10 * DAY, price: 2_000 },
+          { timestamp: 11 * DAY, price: 2_100 },
+          { timestamp: 12 * DAY, price: 2_200 },
+        ],
       }),
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -83,6 +79,7 @@ describe('historical ETH prices', () => {
     const result = await loadHistoricalEthUsd(9 * DAY, localNewestMidnight)
 
     expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock.mock.calls[0][0]).toBe(`/api/historical-prices?start=${9 * DAY}&span=4`)
     expect(result.map((item) => item.timestamp)).toEqual([
       9 * DAY,
       10 * DAY,
@@ -91,21 +88,17 @@ describe('historical ETH prices', () => {
     ])
   })
 
-  it('fetches the requested range once and stores normalized valid prices', async () => {
+  it('fetches via the first-party proxy and stores normalized valid prices', async () => {
     idb.get.mockResolvedValue(undefined)
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        coins: {
-          'coingecko:ethereum': {
-            prices: [
-              { timestamp: 10 * DAY, price: 2_000 },
-              { timestamp: 11 * DAY, price: -1 },
-              { timestamp: 12 * DAY, price: 2_200 },
-              { timestamp: 13 * DAY, price: 2_300 },
-            ],
-          },
-        },
+        prices: [
+          { timestamp: 10 * DAY, price: 2_000 },
+          { timestamp: 11 * DAY, price: -1 },
+          { timestamp: 12 * DAY, price: 2_200 },
+          { timestamp: 13 * DAY, price: 2_300 },
+        ],
       }),
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -113,14 +106,48 @@ describe('historical ETH prices', () => {
     const result = await loadHistoricalEthUsd(10 * DAY + 300, 12 * DAY + 600)
 
     expect(fetchMock).toHaveBeenCalledOnce()
-    expect(fetchMock.mock.calls[0][0]).toContain(`start=${10 * DAY}`)
-    expect(fetchMock.mock.calls[0][0]).toContain('period=1d&span=4')
+    expect(fetchMock.mock.calls[0][0]).toBe(`/api/historical-prices?start=${10 * DAY}&span=4`)
     expect(result).toEqual([
       { timestamp: 10 * DAY, price: 2_000 },
       { timestamp: 12 * DAY, price: 2_200 },
       { timestamp: 13 * DAY, price: 2_300 },
     ])
     expect(idb.set).toHaveBeenCalledOnce()
+  })
+
+  it('falls back to DefiLlama when the first-party proxy is unavailable', async () => {
+    idb.get.mockResolvedValue(undefined)
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: 'missing' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          coins: {
+            'coingecko:ethereum': {
+              prices: [
+                { timestamp: 10 * DAY, price: 2_000 },
+                { timestamp: 11 * DAY, price: 2_100 },
+              ],
+            },
+          },
+        }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await loadHistoricalEthUsd(10 * DAY, 11 * DAY)
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0][0]).toContain('/api/historical-prices?')
+    expect(fetchMock.mock.calls[1][0]).toContain('https://coins.llama.fi/chart/coingecko:ethereum?')
+    expect(result).toEqual([
+      { timestamp: 10 * DAY, price: 2_000 },
+      { timestamp: 11 * DAY, price: 2_100 },
+    ])
   })
 
   it('keeps cache access optional when IndexedDB is unavailable', async () => {

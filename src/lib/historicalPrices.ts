@@ -4,7 +4,10 @@ import type { DailyEarningsLedgerEntry, DailyEarningsLedgerRow } from './types'
 const DAY_SECONDS = 86_400
 const PRICE_CACHE_VERSION = 1
 const PRICE_CACHE_KEY = `ry:${PRICE_CACHE_VERSION}:eth-usd-daily`
-const PRICE_API = 'https://coins.llama.fi/chart/coingecko:ethereum'
+/** First-party proxy (Cloudflare Pages Function). Prefer this so mobile browsers never hit DefiLlama directly. */
+const PRICE_API = '/api/historical-prices'
+/** Direct DefiLlama fallback for local `vite` without Pages Functions. */
+const PRICE_API_FALLBACK = 'https://coins.llama.fi/chart/coingecko:ethereum'
 
 export interface HistoricalPricePoint {
   timestamp: number
@@ -14,6 +17,10 @@ export interface HistoricalPricePoint {
 interface CachedHistoricalPrices {
   version: number
   items: HistoricalPricePoint[]
+}
+
+interface ProxiedHistoricalPricesResponse {
+  prices?: Array<{ timestamp?: number; price?: number }>
 }
 
 interface DefiLlamaChartResponse {
@@ -81,6 +88,33 @@ function coversRange(items: HistoricalPricePoint[], start: number, end: number) 
   return nearestPrice(items, start) !== null && nearestPrice(items, end) !== null
 }
 
+function parsePriceItems(items: Array<{ timestamp?: number; price?: number }> | undefined) {
+  return (items ?? []).flatMap((item) => {
+    if (
+      typeof item.timestamp !== 'number' ||
+      typeof item.price !== 'number' ||
+      !Number.isFinite(item.timestamp) ||
+      !Number.isFinite(item.price) ||
+      item.price <= 0
+    ) {
+      return []
+    }
+    return [{ timestamp: item.timestamp, price: item.price }]
+  })
+}
+
+async function fetchPriceSeries(
+  url: string,
+  signal: AbortSignal | undefined,
+  parse: (payload: unknown) => HistoricalPricePoint[],
+): Promise<HistoricalPricePoint[]> {
+  const response = await fetch(url, { signal, headers: { Accept: 'application/json' } })
+  if (!response.ok) throw new Error(`Historical ETH prices unavailable (HTTP ${response.status})`)
+  const fresh = parse(await response.json())
+  if (fresh.length === 0) throw new Error('Historical ETH prices unavailable')
+  return fresh
+}
+
 export async function loadHistoricalEthUsd(
   startTimestamp: number,
   endTimestamp: number,
@@ -97,24 +131,25 @@ export async function loadHistoricalEthUsd(
   const start = utcDay(startTimestamp)
   const fetchEnd = utcDay(endTimestamp) + DAY_SECONDS
   const span = Math.max(1, Math.floor((fetchEnd - start) / DAY_SECONDS) + 1)
-  const url = `${PRICE_API}?start=${start}&period=1d&span=${span}`
-  const response = await fetch(url, { signal, headers: { Accept: 'application/json' } })
-  if (!response.ok) throw new Error(`Historical ETH prices unavailable (HTTP ${response.status})`)
+  const query = `start=${start}&span=${span}`
 
-  const payload = await response.json() as DefiLlamaChartResponse
-  const fresh = (payload.coins?.['coingecko:ethereum']?.prices ?? []).flatMap((item) => {
-    if (
-      typeof item.timestamp !== 'number' ||
-      typeof item.price !== 'number' ||
-      !Number.isFinite(item.timestamp) ||
-      !Number.isFinite(item.price) ||
-      item.price <= 0
-    ) {
-      return []
-    }
-    return [{ timestamp: item.timestamp, price: item.price }]
-  })
-  if (fresh.length === 0) throw new Error('Historical ETH prices unavailable')
+  let fresh: HistoricalPricePoint[]
+  try {
+    fresh = await fetchPriceSeries(
+      `${PRICE_API}?${query}`,
+      signal,
+      (payload) => parsePriceItems((payload as ProxiedHistoricalPricesResponse).prices),
+    )
+  } catch (error) {
+    if (signal?.aborted) throw error
+    // Local `vite` without Pages Functions has no proxy; fall back to DefiLlama directly.
+    fresh = await fetchPriceSeries(
+      `${PRICE_API_FALLBACK}?${query}&period=1d`,
+      signal,
+      (payload) =>
+        parsePriceItems((payload as DefiLlamaChartResponse).coins?.['coingecko:ethereum']?.prices),
+    )
+  }
 
   const merged = normalizePrices([...cached, ...fresh])
   await writeHistoricalPriceCache(merged)

@@ -78,8 +78,9 @@ export function MethodologyPage() {
           <li>Alchemy RPC and transfer-history API for live and historical Ethereum reads.</li>
           <li>Coinbase for ETH prices in the dashboard’s supported fiat currencies.</li>
           <li>
-            DefiLlama for the daily historical ETH/USD prices used in the earnings table. Non-USD
-            fiat columns convert that series with the live ETH spot FX from Coinbase.
+            RocketYield’s `/api/historical-prices` proxy for daily historical ETH/USD prices used in
+            the earnings table (sourced from DefiLlama server-side). Non-USD fiat columns convert
+            that series with the live ETH spot FX from Coinbase.
           </li>
           <li>GeckoTerminal for the Curve rETH/WETH spot-market comparison.</li>
           <li>Cloudflare Pages, Functions, KV, and D1 for hosting, the shared rate cache, and cookieless visitor counts.</li>
