@@ -133,6 +133,25 @@ describe('App live-data states', () => {
     expect(screen.getByRole('button', { name: /try the live request again/i })).toBeInTheDocument()
   })
 
+  it('shows key-free technical details for a failed read', () => {
+    window.history.replaceState({}, '', '/?address=rocketpool.eth')
+    mockedHook.mockReturnValue({
+      data: null,
+      error: new DashboardError(
+        'network',
+        'Could not reconstruct Rocket Pool’s exchange-rate history.',
+        new Error('HTTP request failed.\n\nStatus: 503\nURL: https://eth-mainnet.g.alchemy.com/v2/SECRET_KEY'),
+      ),
+      progress: { phase: 'error', label: 'Live data request failed' },
+      refresh,
+    })
+
+    render(<App />)
+    expect(screen.getByText('Technical details')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(/network · HTTP request failed\. Status: 503/)
+    expect(screen.getByRole('alert')).not.toHaveTextContent('SECRET_KEY')
+  })
+
   it('shows zero-holdings and partial-market states without hiding on-chain data', () => {
     window.history.replaceState({}, '', '/?address=averylongwalletlabel.eth')
     mockedHook.mockReturnValue({

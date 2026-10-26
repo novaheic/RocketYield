@@ -19,6 +19,7 @@ import {
   ROCKET_STORAGE_ABI,
   ROCKET_STORAGE_ADDRESS,
 } from './contracts'
+import { isRateLimitedRpcError, isTransientNetworkError, readErrorInfo } from './errors'
 
 let client: PublicClient | undefined
 
@@ -120,20 +121,19 @@ export async function readCurrentNetworkBalancesAddress(): Promise<Address> {
 }
 
 export function mapChainError(error: unknown, fallback: string): DashboardError {
-  const message = error instanceof Error ? error.message : String(error)
-  const lower = message.toLowerCase()
+  const { text } = readErrorInfo(error)
 
-  if (lower.includes('429') || lower.includes('rate limit')) {
+  if (isRateLimitedRpcError(error)) {
     return new DashboardError('rpc_rate_limited', 'The Ethereum endpoint is rate-limiting this history request.', error)
   }
   if (
-    lower.includes('missing trie node') ||
-    lower.includes('historical state') ||
-    lower.includes('archive')
+    text.includes('missing trie node') ||
+    text.includes('historical state') ||
+    text.includes('archive')
   ) {
     return new DashboardError('archive_required', 'This endpoint cannot serve the required historical Ethereum data.', error)
   }
-  if (lower.includes('fetch') || lower.includes('network') || lower.includes('timeout')) {
+  if (isTransientNetworkError(error) || text.includes('fetch')) {
     return new DashboardError('network', fallback, error)
   }
   return new DashboardError('unknown', fallback, error)

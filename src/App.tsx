@@ -13,7 +13,8 @@ import { ImpressumPage } from './pages/ImpressumPage'
 import { MethodologyPage } from './pages/MethodologyPage'
 import { PrivacyPage } from './pages/PrivacyPage'
 import { StatsPage } from './pages/StatsPage'
-import { FIAT_CURRENCIES, type FiatCurrency } from './lib/types'
+import { describeErrorCause } from './lib/chain/errors'
+import { FIAT_CURRENCIES, type DashboardError, type FiatCurrency } from './lib/types'
 import './styles/app.css'
 
 const FIAT_STORAGE_KEY = 'rocketyield-fiat-currency'
@@ -138,14 +139,22 @@ function Loading({
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+function ErrorState({ error, onRetry }: { error: DashboardError; onRetry: () => void }) {
+  const cause = describeErrorCause(error)
   return (
     <section className="state-view error-state" role="alert">
       <AlertTriangle size={24} />
       <span className="state-index">DATA REQUEST STOPPED</span>
       <h1>RocketYield could not finish this read.</h1>
-      <p>{message}</p>
+      <p>{error.message}</p>
       <button type="button" onClick={onRetry}>Try the live request again</button>
+      <details className="error-details">
+        <summary>Technical details</summary>
+        <code>
+          {error.code}
+          {cause ? ` · ${cause}` : ''}
+        </code>
+      </details>
     </section>
   )
 }
@@ -212,7 +221,7 @@ export default function App() {
               total={progress.total}
             />
           )}
-          {error && <ErrorState message={error.message} onRetry={refresh} />}
+          {error && <ErrorState error={error} onRetry={refresh} />}
           {data && (
             <div className="dashboard">
               {data.currentReth === 0n && (

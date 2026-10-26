@@ -63,7 +63,7 @@ export function useRocketYield(input: string) {
         )
         let rates = await loadRateHistory(
           current.chainBlock,
-          transfers.map((transfer) => transfer.blockNumber),
+          transfers,
           setProgress,
           controller.signal,
         )
@@ -109,6 +109,7 @@ export function useRocketYield(input: string) {
         setProgress({ phase: 'ready', label: 'Live data ready' })
       } catch (caught) {
         if (caught instanceof DOMException && caught.name === 'AbortError') return
+        console.error('RocketYield live read failed', caught)
         setError(normalizeError(caught))
         setProgress({ phase: 'error', label: 'Live data request failed' })
       }

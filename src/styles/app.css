@@ -365,6 +365,24 @@
   border-radius: var(--radius-sm);
 }
 
+.error-details {
+  width: min(560px, 100%);
+  margin-top: var(--space-6);
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.error-details summary {
+  cursor: pointer;
+}
+
+.error-details code {
+  display: block;
+  margin-top: var(--space-2);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .dashboard {
   padding-top: var(--space-12);
 }

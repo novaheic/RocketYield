@@ -15,16 +15,22 @@ import {
   writeRateCache,
   writeTransferCache,
 } from './cache'
+import { isRateLimitedRpcError, isRetryableRpcError, readErrorInfo } from './errors'
 
 const LOG_BLOCK_CHUNK = 200_000n
 const MIN_LOG_BLOCK_CHUNK = 2_000n
 const BLOCK_BATCH_SIZE = 16
 const RATE_SAMPLE_BATCH_SIZE = 8
+const MIN_RATE_SAMPLE_BATCH_SIZE = 2
+const RATE_SAMPLE_MAX_ATTEMPTS = 4
+const RATE_RETRY_BASE_MS = 500
+const RATE_CHECKPOINT_BATCHES = 5
 const RECENT_SAMPLE_BLOCKS = 7_200n
 const RECENT_SAMPLE_COUNT = 90n
 const HISTORICAL_SAMPLE_BLOCKS = 216_000n
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
-const RATE_LIMIT_RETRY_MS = 500
+const RATE_HISTORY_FALLBACK =
+  'Could not reconstruct Rocket Pool’s exchange-rate history. The Ethereum endpoint kept failing on historical rate reads. Progress is saved, so trying again continues where it stopped.'
 
 export type SharedRatesFetcher = (signal?: AbortSignal) => Promise<RatePoint[] | null>
 
@@ -46,26 +52,7 @@ function ranges(fromBlock: bigint, toBlock: bigint) {
 }
 
 function isRangeLimitError(error: unknown) {
-  let current: unknown = error
-  const messages: string[] = []
-  const codes: number[] = []
-
-  for (let depth = 0; depth < 5 && current && typeof current === 'object'; depth += 1) {
-    const item = current as {
-      message?: unknown
-      details?: unknown
-      shortMessage?: unknown
-      code?: unknown
-      cause?: unknown
-    }
-    for (const value of [item.message, item.details, item.shortMessage]) {
-      if (typeof value === 'string') messages.push(value.toLowerCase())
-    }
-    if (typeof item.code === 'number') codes.push(item.code)
-    current = item.cause
-  }
-
-  const text = messages.join(' ')
+  const { text, codes } = readErrorInfo(error)
   return (
     codes.includes(-32602) ||
     codes.includes(-32005) ||
@@ -420,22 +407,69 @@ export async function fetchSharedRates(signal?: AbortSignal): Promise<RatePoint[
   }
 }
 
-function isRateLimitError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error)
-  const lower = message.toLowerCase()
-  return lower.includes('429') || lower.includes('rate limit')
+function abortableDelay(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const abort = () => {
+      globalThis.clearTimeout(timer)
+      reject(new DOMException('The request was cancelled.', 'AbortError'))
+    }
+    const timer = globalThis.setTimeout(() => {
+      signal?.removeEventListener('abort', abort)
+      resolve()
+    }, ms)
+    signal?.addEventListener('abort', abort, { once: true })
+  })
+}
+
+/** Retries one transient RPC read with exponential backoff and jitter. */
+async function withRpcRetry<T>(
+  read: () => Promise<T>,
+  signal: AbortSignal | undefined,
+  onRateLimited: () => void,
+): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    throwIfAborted(signal)
+    try {
+      return await read()
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') throw error
+      throwIfAborted(signal)
+      if (attempt >= RATE_SAMPLE_MAX_ATTEMPTS || !isRetryableRpcError(error)) throw error
+      if (isRateLimitedRpcError(error)) onRateLimited()
+      const delay = RATE_RETRY_BASE_MS * 2 ** (attempt - 1)
+      await abortableDelay(delay + Math.random() * delay * 0.25, signal)
+    }
+  }
+}
+
+async function readRatePoint(blockNumber: bigint, knownTimestamp?: number): Promise<RatePoint> {
+  const rpc = getMainnetClient()
+  const [rate, timestamp] = await Promise.all([
+    rpc.readContract({
+      address: RETH_ADDRESS,
+      abi: RETH_ABI,
+      functionName: 'getExchangeRate',
+      blockNumber,
+    }),
+    knownTimestamp
+      ? knownTimestamp
+      : rpc.getBlock({ blockNumber }).then((block) => Number(block.timestamp)),
+  ])
+  return { blockNumber, timestamp, rate }
 }
 
 async function sampleRatesAtBlocks(
   blocks: bigint[],
+  knownTimestamps: Map<string, number>,
   onProgress: ProgressCallback,
   label: string,
-  signal?: AbortSignal,
+  signal: AbortSignal | undefined,
+  onBatch: (points: RatePoint[]) => Promise<void>,
 ): Promise<RatePoint[]> {
-  const rpc = getMainnetClient()
   const fresh: RatePoint[] = []
+  let batchSize = RATE_SAMPLE_BATCH_SIZE
 
-  for (let index = 0; index < blocks.length; index += RATE_SAMPLE_BATCH_SIZE) {
+  for (let index = 0; index < blocks.length;) {
     throwIfAborted(signal)
     onProgress({
       phase: 'rates',
@@ -443,38 +477,30 @@ async function sampleRatesAtBlocks(
       completed: index,
       total: blocks.length,
     })
-    const batch = blocks.slice(index, index + RATE_SAMPLE_BATCH_SIZE)
+    const batch = blocks.slice(index, index + batchSize)
+    let rateLimited = false
 
-    let attempt = 0
-    while (true) {
-      try {
-        const points = await Promise.all(
-          batch.map(async (blockNumber) => {
-            const [rate, block] = await Promise.all([
-              rpc.readContract({
-                address: RETH_ADDRESS,
-                abi: RETH_ABI,
-                functionName: 'getExchangeRate',
-                blockNumber,
-              }),
-              rpc.getBlock({ blockNumber }),
-            ])
-            return {
-              blockNumber,
-              timestamp: Number(block.timestamp),
-              rate,
-            } satisfies RatePoint
-          }),
-        )
-        fresh.push(...points)
-        break
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') throw error
-        if (!isRateLimitError(error) || attempt >= 1) throw error
-        attempt += 1
-        await new Promise((resolve) => window.setTimeout(resolve, RATE_LIMIT_RETRY_MS))
-      }
-    }
+    const settled = await Promise.allSettled(
+      batch.map((blockNumber) =>
+        withRpcRetry(
+          () => readRatePoint(blockNumber, knownTimestamps.get(blockNumber.toString())),
+          signal,
+          () => {
+            rateLimited = true
+          },
+        ),
+      ),
+    )
+    const points = settled.flatMap((result) => result.status === 'fulfilled' ? [result.value] : [])
+    fresh.push(...points)
+    // Keep partial progress so a retry resumes instead of starting over.
+    await onBatch(points)
+
+    const failure = settled.find((result) => result.status === 'rejected')
+    if (failure) throw failure.reason
+
+    if (rateLimited) batchSize = Math.max(MIN_RATE_SAMPLE_BATCH_SIZE, Math.floor(batchSize / 2))
+    index += batch.length
   }
 
   return fresh
@@ -482,13 +508,20 @@ async function sampleRatesAtBlocks(
 
 export async function loadRateHistory(
   latestBlock: bigint,
-  transferBlocks: bigint[],
+  transfers: Array<Pick<TransferPoint, 'blockNumber' | 'timestamp'>>,
   onProgress: ProgressCallback,
   signal?: AbortSignal,
   fetchShared: SharedRatesFetcher = fetchSharedRates,
 ): Promise<RatePoint[]> {
   const cached = await readRateCache()
   let existing = cached?.items ?? []
+  let unsavedBatches = 0
+  const transferBlocks = transfers.map((transfer) => transfer.blockNumber)
+  const knownTimestamps = new Map<string, number>()
+  for (const transfer of transfers) {
+    const key = transfer.blockNumber.toString()
+    if (transfer.timestamp > 0 && !knownTimestamps.has(key)) knownTimestamps.set(key, transfer.timestamp)
+  }
 
   try {
     onProgress({
@@ -516,29 +549,39 @@ export async function loadRateHistory(
         : buildRateSampleBlocks(latestBlock, transferBlocks)
     ).filter((block) => !existingBlocks.has(block.toString()))
 
-    const fresh = sampleBlocks.length > 0
-      ? await sampleRatesAtBlocks(
+    if (sampleBlocks.length > 0) {
+      await sampleRatesAtBlocks(
         sampleBlocks,
+        knownTimestamps,
         onProgress,
         usedSharedFeed
           ? 'Filling rates at your transfers'
           : 'Sampling historical Rocket Pool rates',
         signal,
+        async (points) => {
+          if (!points.length) return
+          existing = mergeRatePoints([...existing, ...points])
+          unsavedBatches += 1
+          if (unsavedBatches >= RATE_CHECKPOINT_BATCHES) {
+            unsavedBatches = 0
+            await writeRateCache(latestBlock, existing)
+          }
+        },
       )
-      : []
+    }
 
-    const merged = mergeRatePoints([...existing, ...fresh])
-    await writeRateCache(latestBlock, merged)
+    await writeRateCache(latestBlock, existing)
     onProgress({
       phase: 'rates',
-      label: `${merged.length.toLocaleString()} rate points indexed`,
+      label: `${existing.length.toLocaleString()} rate points indexed`,
       completed: sampleBlocks.length,
       total: sampleBlocks.length,
     })
-    return merged
+    return existing
   } catch (error) {
+    if (unsavedBatches > 0) await writeRateCache(latestBlock, existing)
     if (error instanceof DOMException && error.name === 'AbortError') throw error
-    throw mapChainError(error, 'Could not reconstruct Rocket Pool’s exchange-rate history.')
+    throw mapChainError(error, RATE_HISTORY_FALLBACK)
   }
 }
 
