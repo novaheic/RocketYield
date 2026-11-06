@@ -31,7 +31,6 @@ RocketYield answers that question on one calm screen, designed to stay open on a
 - **Projections.** Expected earnings per day, month, and year at the current 7-day rate, compared with your realized 30-day pace.
 - **Charts and history.** rETH/ETH rate over time, daily earnings, and a daily earnings table with CSV and JSON export.
 - **Market vs. redemption rate.** Live DEX premium or discount from the Curve rETH/WETH pool.
-- **Milestones.** "0.01 ETH earned in about 3 days."
 - **Eight fiat currencies.** USD, EUR, GBP, AUD, CAD, CNY, JPY, KRW.
 - **Shareable.** The address lives in the URL (`?address=vitalik.eth`), so any view can be bookmarked or shared.
 
@@ -49,7 +48,7 @@ Earnings come from the change in the rETH/ETH exchange rate, weighted by how muc
 earnings = Σ (rETH balance held during period × rate change during that period)
 ```
 
-Any window (7d, 30d, lifetime) is a slice of that timeline. The full write-up, including contracts, sampling, and limitations, is on the [methodology page](https://rocketyield.net/methodology) (English and German).
+Any window (7d, 30d, lifetime) is a slice of that timeline. The full write-up, including contracts, sampling, and limitations, is on the [methodology page](https://rocketyield.net/methodology).
 
 | Data | Source |
 |---|---|
